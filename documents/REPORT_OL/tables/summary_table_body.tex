@@ -1,0 +1,23 @@
+    SL (ref.) & Adam checkpoint & 0.310 & 0.6817 & $<$1\,s & $\sim$50k & --- & full-net GD \\
+    \midrule
+    Part 1 & RHC & 0.310 & 0.6774 & --- & 0 & 50k & out-only, 4 restarts \\
+    Part 1 & SA & 0.315 & 0.6806 & --- & 0 & 50k & out-only, exp.\ cool \\
+    Part 1 & GA & 0.309 & 0.6760 & --- & 0 & 50k & out-only, pop16/el4 \\
+    \midrule
+    Part 2 & SGD & 0.319 & 0.6693 & $\sim$1.8\,s & 4.2k & --- & full-net GD \\
+    Part 2 & SGD+Mom. & 0.316 & 0.6756 & $\sim$0.3\,s & 4.2k & --- & full-net GD \\
+    Part 2 & Nesterov & 0.316 & 0.6733 & $\sim$0.3\,s & 4.2k & --- & full-net GD \\
+    Part 2 & Adam & 0.315 & 0.6783 & $\sim$0.2\,s & 4.2k & --- & full-net GD \\
+    Part 2 & Adam, no BC & 0.316 & 0.6771 & $\sim$0.1\,s & 4.2k & --- & full-net GD \\
+    Part 2 & Adam, $\beta_1=0$ & 0.316 & 0.6769 & $\sim$0.3\,s & 4.2k & --- & full-net GD \\
+    Part 2 & AdamW & 0.315 & 0.6783 & $\sim$0.2\,s & 4.2k & --- & full-net GD \\
+    \midrule
+    Part 3 & No Reg. & 0.315 & 0.6783 & $\sim$0.2\,s & 4.2k & --- & Adam, no reg. \\
+    Part 3 & Dropout & 0.315 & 0.6792 & $\sim$0.2\,s & 4.2k & --- & dropout $p=0.1$ \\
+    Part 3 & L2 & 0.315 & 0.6788 & $\sim$0.2\,s & 4.2k & --- & L2 $\lambda=10^{-3}$ \\
+    Part 3 & Early Stop & 0.315 & 0.6783 & $\sim$0.2\,s & 4.2k & --- & ES, pat.=3 \\
+    Part 3 & Input Noise & 0.315 & 0.6796 & $\sim$0.3\,s & 4.2k & --- & noise $\sigma=0.1$ \\
+    Part 3 & Label Smooth. & 0.328 & 0.6776 & never & 4.2k & --- & LS, $\epsilon=0.01$ \\
+    Part 3 & Best Combo & 0.315 & 0.6788 & $\sim$0.1\,s & 4.2k & --- & ES + L2 \\
+    \midrule
+    Part 4 (EC) & Adam+SA & 0.315 & 0.6783 & $\sim$0.2\,s & 3.4k & 120 & full-net Adam, out SA \\

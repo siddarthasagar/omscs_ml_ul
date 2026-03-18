@@ -1,0 +1,22 @@
+# Requirements for Unsupervised Learning assignment (UL Report)
+# Core ML & DR tools
+scikit-learn
+imbalanced-learn
+scikit-learn-extra
+
+# Deep learning (pick one or both depending on your experiments)
+torch
+pytorch-lightning
+
+# Data & visualization
+pandas
+polars
+numpy
+scipy
+matplotlib
+plotly
+altair
+seaborn
+
+# Utilities
+tqdm

@@ -1,0 +1,13 @@
+# macOS noise
+.DS_Store
+
+# Python cache/build artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Local tooling caches/environments
+.venv/
+.ruff_cache/
