@@ -195,3 +195,10 @@ The UL work is complete only if all of the following are true:
 - expanding the assignment to additional datasets
 - replacing the Wine NN follow-on track with Adult
 - using `t-SNE` as the core reduced input for supervised training
+
+## Logging and Output Structure Strategy
+
+To directly support the LaTeX report compilation in `/Users/siddarthasagarchinne/github/omscs_ml_ul/REPORT_UL`, the logging and artifact generation must mirror the robust pattern from the prior OL project:
+1. **Per-Run Logging:** Every phase script must use a standardized logger (e.g., `src/utils/logger.py`) that outputs console and file logs into `artifacts/logs/{phase_id}_{run_id}.log`.
+2. **Metrics Persistence:** Experimental results must be saved as structured flat records (CSV/JSON) in `artifacts/metrics/{phase_id}/`.
+3. **Automated Table Generation:** A dedicated tool (e.g., `scripts/generate_report_tables.py`) will aggregate the flat records into report-ready format (LaTeX `.tex` snippets or `.md` tables) under `artifacts/tables/` partitioned by report sections (e.g., Part 1 Clustering, Part 2 Dimensionality Reduction).
