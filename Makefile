@@ -2,7 +2,7 @@ PY=uv run python
 
 .DEFAULT_GOAL := help
 
-.PHONY: help setup env add-deps dev upgrade run lint format test spec-new spec-list spec-check clean
+.PHONY: help setup env add-deps dev upgrade run lint format test clean
 
 help: ## Show available targets
 	@echo "Available targets:"
@@ -37,16 +37,6 @@ format: ## Run Ruff fix + format
 
 test: ## Run the test suite
 	uv run pytest
-
-spec-new: ## Create a new spec folder (usage: make spec-new NAME=my-change)
-	@if [ -z "$(NAME)" ]; then echo "NAME is required"; exit 1; fi
-	$(PY) scripts/new_spec.py "$(NAME)"
-
-spec-list: ## List spec folders
-	@find specs -mindepth 1 -maxdepth 1 -type d ! -name templates | sort
-
-spec-check: ## Validate spec folder structure
-	$(PY) scripts/check_specs.py
 
 clean: ## Remove local build artifacts and caches
 	rm -rf .pytest_cache .ruff_cache .venv

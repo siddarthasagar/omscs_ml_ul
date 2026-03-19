@@ -33,6 +33,13 @@ The contract is:
 - `Adult Income` and `Wine Quality` are both mandatory for Steps 1 to 3.
 - `Wine Quality` is the locked dataset for Steps 4 and 5.
 
+Dataset selection rationale for Steps 4–5:
+
+- The v2 assignment (2026-03-11) allows either Adult or Wine for the NN follow-on experiments.
+- Wine is deliberately locked here because the prior SL and OL work already established a structurally pathological case: heavily overlapping quality classes, sub-0.50 Macro-F1 ceiling, and a stated hypothesis that the raw feature space is insufficient.
+- This makes Wine the more analytically interesting candidate for testing whether representation learning or cluster-derived information can move the needle.
+- Adult is excluded from Steps 4–5 because the prior OL work yielded a near-linear decision boundary where further representation changes are less likely to produce analytically interesting outcomes.
+
 ### Algorithm Scope
 
 Required algorithms:
@@ -43,18 +50,6 @@ Required algorithms:
 Extra-credit track:
 
 - Non-linear manifold learning: `t-SNE`
-
-### Tooling Scope
-
-- Use `scikit-learn` for clustering, dimensionality reduction, and evaluation helpers.
-- Use `PyTorch` only for the neural-network experiments in Steps 4 and 5.
-- Reuse prior SL/OL project knowledge from `/Users/siddarthasagarchinne/github/omscs_ml_ol`, but do not trust it blindly where code and writeups disagree.
-
-### Experiment Flow
-
-- Use a two-phase process:
-  - exploratory sweeps on train/validation only
-  - report-grade repeated runs after settings are frozen
 
 ## Canonical Data Contracts
 
@@ -83,14 +78,7 @@ Rationale:
 - the written SL and OL reports consistently describe the Wine problem as an 11-feature physicochemical task
 - the user explicitly selected Wine because the earlier assignments found severe overlap in that feature space
 
-Risk:
-
-- the OL repo code comments suggest `type` may have been kept, which would yield 12 features
-
-Required resolution rule:
-
-- before implementation begins, audit the prior OL backbone and checkpoints
-- if the checkpoint expects 12 inputs, treat the checkpoint as non-authoritative for UL and rebuild the raw-feature Wine NN baseline under the report-aligned 11-feature contract
+Note: if the Phase 0 audit reveals the OL checkpoint was trained on 12 features, treat it as non-authoritative and rebuild the raw-feature Wine NN baseline under the canonical 11-feature contract before any Step 4 comparisons.
 
 ## Step-Level Specification
 
@@ -140,19 +128,24 @@ Required outputs:
 
 ### Step 4: Neural Networks on Reduced Data
 
-Use Wine only.
+Use Wine only (see dataset selection rationale under Locked Decisions).
 
-Compare the same NN family on:
+Baseline definition:
 
-- raw Wine features
-- PCA features
-- ICA features
-- RP features
+- The reference model is the best Wine neural network from the OL report: a fully-connected PyTorch network trained with the Adam optimizer, using the learning rate, batch size, and early-stopping configuration that produced the best OL validation Macro-F1 on Wine.
+- If the Phase 0 audit reveals that the OL checkpoint was trained on 12 features rather than 11, the baseline must be rebuilt under the canonical 11-feature contract before any Step 4 comparisons are made.
+
+Compare this baseline on:
+
+- raw Wine features (the rebuilt or inherited baseline)
+- PCA-reduced Wine features
+- ICA-reduced Wine features
+- RP-reduced Wine features
 
 Rules:
 
 - keep train/validation/test split discipline fixed
-- keep optimizer and training controls fixed unless the baseline audit proves the prior OL setup is inconsistent with the canonical Wine contract
+- keep optimizer, learning rate, batch size, and stopping rule fixed across all input variants so only the input representation changes
 - resize only the input layer as needed for transformed spaces
 
 ### Step 5: Neural Networks With Cluster-Derived Features
@@ -202,15 +195,3 @@ The UL work is complete only if all of the following are true:
 - expanding the assignment to additional datasets
 - replacing the Wine NN follow-on track with Adult
 - using `t-SNE` as the core reduced input for supervised training
-
-## Required External Dependencies
-
-- Prior OL repo: `/Users/siddarthasagarchinne/github/omscs_ml_ol`
-- Assignment docs in `documents/canvas/assignment/md`
-- Supplemental readings in `documents/canvas/Supplemental_Readings`
-
-## Open Issues To Track
-
-1. Confirm whether the prior OL Wine baseline truly used 11 or 12 input features.
-2. Confirm the exact optimizer and stopping controls to inherit for the Wine NN baseline.
-3. Confirm whether final report-grade repetitions should mirror the OL 10-seed convention or use a smaller UL-specific repetition budget.
