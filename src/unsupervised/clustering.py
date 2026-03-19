@@ -20,7 +20,7 @@ def run_kmeans_sweep(
     Selection is label-free: silhouette, Calinski-Harabasz, Davies-Bouldin.
 
     Returns:
-        DataFrame with columns [k, silhouette, calinski_harabasz, davies_bouldin]
+        DataFrame with columns [k, inertia, silhouette, calinski_harabasz, davies_bouldin]
     """
     records = []
     for k in k_range:
@@ -29,6 +29,7 @@ def run_kmeans_sweep(
         records.append(
             {
                 "k": k,
+                "inertia": km.inertia_,
                 "silhouette": silhouette_score(X, labels),
                 "calinski_harabasz": calinski_harabasz_score(X, labels),
                 "davies_bouldin": davies_bouldin_score(X, labels),

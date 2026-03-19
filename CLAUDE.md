@@ -4,8 +4,16 @@ Datasets: data/adult.csv, data/wine.csv. No src/ or tests/ yet — planning only
 
 ## Current Status
 - Phase 0: [x] COMPLETE — all blockers resolved 2026-03-19
-- Phase 1–7: [ ] unblocked, ready to implement
+- Phase 1: [x] COMPLETE — data loaders, preprocessing, Gate 1 tests passing
+- Phase 2: [x] COMPLETE — raw clustering sweep done, 4 CSVs + 4 PNGs, K values frozen 2026-03-20
+- Phase 3–7: [ ] blocked on logging fix (see documents/TODO.md)
 Update this block at end of every session.
+
+## Session Rules (enforced every conversation)
+1. **FAQ rule:** Any methodological question asked and answered ("why X?", "is speed correct?", "how is K chosen?") must be written to `documents/faq.md` before the session ends.
+2. **TODO rule:** Any bug, blocker, or cross-cutting issue not specific to a single phase script belongs in `documents/TODO.md`.
+3. **Frozen K values (Phase 2, label-free):** Wine KMeans=2, Wine GMM=7, Adult KMeans=8, Adult GMM=7. Do not re-select without explicit user instruction.
+4. **Logging:** All phase scripts must call `configure_logger(run_id)` from `src/utils/logger.py`. Do not implement a new phase script without wiring logging first.
 
 ## Phase 0 Audit Results (locked 2026-03-19)
 - OL input_dim: **12** — 11 physicochemical features + `type` (numeric 0/1, StandardScaled, NOT dropped)
@@ -41,6 +49,8 @@ uv run pytest tests/test_unsupervised.py -v    # Gate 2 (after Phase 2)
 Full spec (scope + contracts):     documents/specs/ul_master_spec.md
 Phase execution + module design:   documents/specs/ul_execution_guide.md
 Algorithm guidance + hypotheses:   documents/specs/ul_research_notes.md
+Open issues + blockers:            documents/TODO.md
+Methodological FAQ (running log):  documents/faq.md
 Assignment v2:                     documents/canvas/assignment/md/UL_Report_Spring_2026_v2.md
 FAQ v2:                            documents/canvas/assignment/md/UL_Report_Spring_2026_FAQ_v2.md
 Prior OL report:                   documents/REPORT_OL/OL_Report_schinne3.tex

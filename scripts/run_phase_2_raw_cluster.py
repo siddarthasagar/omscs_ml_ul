@@ -16,12 +16,15 @@ from src.config import ARTIFACTS_DIR, SEED_EXPLORE
 from src.data.adult import load_adult
 from src.data.wine import load_wine
 from src.unsupervised.clustering import run_gmm_sweep, run_kmeans_sweep
+from src.utils.plotting import plot_gmm_sweep, plot_kmeans_sweep
 
 OUTPUT_DIR = ARTIFACTS_DIR / "metrics" / "phase2_clustering"
+FIGURES_DIR = ARTIFACTS_DIR / "figures" / "phase2_clustering"
 
 
 def main() -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    FIGURES_DIR.mkdir(parents=True, exist_ok=True)
 
     datasets = {
         "wine": load_wine(seed=SEED_EXPLORE)[0],
@@ -38,15 +41,21 @@ def main() -> None:
         kmeans_path = OUTPUT_DIR / f"{name}_kmeans.csv"
         kmeans_df.to_csv(kmeans_path, index=False)
         print(f"  Saved → {kmeans_path}")
+        fig_path = plot_kmeans_sweep(kmeans_df, name, FIGURES_DIR)
+        print(f"  Plot  → {fig_path}")
 
         print("  GMM sweep...")
         gmm_df = run_gmm_sweep(X_train, n_range=sweep_range, seed=SEED_EXPLORE)
         gmm_path = OUTPUT_DIR / f"{name}_gmm.csv"
         gmm_df.to_csv(gmm_path, index=False)
         print(f"  Saved → {gmm_path}")
+        fig_path = plot_gmm_sweep(gmm_df, name, FIGURES_DIR)
+        print(f"  Plot  → {fig_path}")
 
     print("\n── Phase 2 complete. Artifacts:")
     for p in sorted(OUTPUT_DIR.glob("*.csv")):
+        print(f"   {p}")
+    for p in sorted(FIGURES_DIR.glob("*.png")):
         print(f"   {p}")
 
 
