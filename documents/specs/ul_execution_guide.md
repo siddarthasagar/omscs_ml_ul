@@ -12,7 +12,7 @@ omscs_ml_ul/
 │   ├── config.py                      # Centralized constants
 │   ├── data/
 │   │   ├── adult.py                   # Adult loader & preprocessor
-│   │   └── wine.py                    # Wine loader & preprocessor (11-feature contract)
+│   │   └── wine.py                    # Wine loader & preprocessor (12-feature contract)
 │   ├── unsupervised/
 │   │   ├── clustering.py              # K-Means, GMM wrappers & metrics
 │   │   └── reduction.py              # PCA, ICA, RP, t-SNE wrappers & diagnostics
@@ -49,7 +49,7 @@ omscs_ml_ul/
 ```python
 SEED_EXPLORE: int = 42
 SEEDS_REPORT: list[int] = list(range(42, 52))   # 42–51 inclusive
-WINE_N_FEATURES: int = 11
+WINE_N_FEATURES: int = 12                        # 11 physicochemical + type (numeric 0/1)
 DATA_DIR: Path = Path("data")
 ARTIFACTS_DIR: Path = Path("artifacts")
 ```
@@ -60,8 +60,8 @@ def load_wine(seed: int = 42) -> tuple[np.ndarray, np.ndarray, np.ndarray,
                                         np.ndarray, np.ndarray, np.ndarray]:
     """
     Returns (X_train, X_val, X_test, y_train, y_val, y_test).
-    Drops `type` and duplicate target column. Asserts X_train.shape[1] == 11.
-    Fits StandardScaler on X_train only.
+    Drops `quality` (leakage) and `class` (target). Keeps `type` (numeric 0/1).
+    Asserts X_train.shape[1] == 12. Fits StandardScaler on X_train only.
     """
 ```
 
@@ -158,28 +158,24 @@ def main() -> None:
 
 ### Phase 0: Baseline Audit
 
-**Status:** [ ] not started
+**Status:** [x] COMPLETE — 2026-03-19
 
-**Objective:** Resolve the OL Wine feature-count ambiguity before any code is written.
-
-**No files to create.** All findings are recorded in CLAUDE.md Open Blockers.
-
-**Concrete tasks:**
-
-1. Open `/Users/siddarthasagarchinne/github/omscs_ml_ol`. Locate Wine preprocessing path. Check whether `type` is dropped. Count features passed to the model.
-2. Locate saved model checkpoint. Inspect `model.state_dict()['fc1.weight'].shape[1]` — this is the authoritative input_dim.
-3. Record `lr`, `batch_size`, `hidden_dims`, `patience` from the OL config. Write these into CLAUDE.md Open Blockers section.
-4. If `input_dim == 12`: document decision to rebuild baseline under the 11-feature contract. Note this in CLAUDE.md constraint #7.
-
-**Exit criteria:**
-- CLAUDE.md Open Blockers updated with confirmed answers to all 3 items.
-- Feature count confirmed. Baseline config locked.
+**Findings (locked):**
+- `input_dim = 12` — OL keeps `type` (numeric 0/1) as a feature; only `quality` and `class` are dropped
+- Architecture: `Linear(12, 100) → ReLU → Linear(100, 8)`, no dropout
+- Optimizer: Adam, `lr=1e-3`, `betas=(0.9, 0.999)`, `weight_decay=0.0`
+- `batch_size=128` (train), `256` (val)
+- `max_epochs=20`, no early stopping in baseline
+- Split: 60/20/20, stratified, `seed=42`
+- Preprocessing: `ColumnTransformer` fit on `X_train` only; `StandardScaler` for all numeric cols (including `type`); no OHE needed (`type` is already numeric)
+- **Decision:** UL Wine uses 12 features (matches OL) — raw-feature UL run is numerically comparable to OL-reported Macro-F1
+- Sources: `omscs_ml_ol/src/backbone.py`, `src/project_constants.py`, `src/optimizer_constants.py`
 
 ---
 
 ### Phase 1: Data Loading
 
-**Status:** [ ] blocked on Phase 0
+**Status:** [ ] ready (Phase 0 complete)
 
 **Objective:** Build one reliable preprocessing contract per dataset for all later experiments.
 
@@ -198,11 +194,11 @@ def main() -> None:
 
 2. `src/data/wine.py` — implement `load_wine(seed=42)`:
    - load `data/wine.csv`
-   - drop `type` and duplicate target column
-   - normalize target to the class used in prior work
-   - split into train/val/test using `seed`
-   - fit `StandardScaler` on `X_train` only
-   - `assert X_train.shape[1] == WINE_N_FEATURES`
+   - split on RAW data first (matches OL/SL split exactly): 80/20 → then 75/25 of 80% → 60/20/20
+   - drop `quality` (leakage) and `class` (target) AFTER split; keep `type`
+   - fit `StandardScaler` on `X_train` only (all numeric cols including `type`)
+   - `assert X_train.shape[1] == WINE_N_FEATURES`  # 12
+   - encode target with `LabelEncoder` fit on `y_train` only
    - return `(X_train, X_val, X_test, y_train, y_val, y_test)`
 
 3. `src/data/adult.py` — implement `load_adult(seed=42)`:
@@ -213,7 +209,7 @@ def main() -> None:
    - return `(X_train, X_val, X_test, y_train, y_val, y_test)`
 
 4. `tests/test_data.py` — implement:
-   - `test_wine_feature_count()` — asserts `X_train.shape[1] == 11`
+   - `test_wine_feature_count()` — asserts `X_train.shape[1] == 12`
    - `test_wine_no_leakage()` — fits scaler on X_train, transforms X_val, checks val stats differ from train
    - `test_adult_no_leakage()` — same pattern for adult ColumnTransformer
    - `test_split_sizes()` — asserts train/val/test fractions are in expected range
@@ -328,7 +324,7 @@ uv run python scripts/run_phase_4_reduced_cluster.py
 
 ### Phase 5: Step 4 Wine NN on Reduced Inputs
 
-**Status:** [ ] blocked on Phase 0 (baseline must be confirmed first)
+**Status:** [ ] blocked on Phase 1
 
 **Objective:** Measure whether linear DR changes Wine NN behavior.
 
@@ -341,15 +337,16 @@ uv run python scripts/run_phase_4_reduced_cluster.py
 **Concrete tasks:**
 
 1. `src/supervised/nn_baseline.py` — implement `WineNN(input_dim: int)`:
-   - architecture (hidden dims, activation, dropout) locked from Phase 0 audit
-   - only `input_dim` varies between raw/PCA/ICA/RP variants
+   - architecture locked from Phase 0: `Linear(input_dim, 100) → ReLU → Linear(100, 8)`, no dropout
+   - raw variant uses `input_dim=12`; PCA/ICA/RP variants use their respective n_components
+   - always initialized with random weights — no checkpoint is loaded from OL
 
 2. `src/supervised/training.py` — implement `train_wine_nn(X_train, y_train, X_val, y_val, config)`:
-   - optimizer, lr, batch_size, patience all locked from Phase 0 audit
+   - locked config: Adam, `lr=1e-3`, `batch_size=128`, `max_epochs=20`, no early stopping in baseline
    - returns `(model, history)` where `history = {epoch: [train_loss, val_loss, train_f1, val_f1]}`
 
 3. `scripts/run_phase_5_nn_reduced.py`:
-   - 4 variants: raw (11 features), PCA-reduced, ICA-reduced, RP-reduced
+   - 4 variants: raw (12 features), PCA-reduced, ICA-reduced, RP-reduced
    - for each variant × seeds 42–51: train, record val Macro-F1
    - save `artifacts/metrics/phase5_nn_reduced/comparison_table.csv` with cols `[variant, seed, val_macro_f1, test_macro_f1, epochs_to_converge]`
 
@@ -370,17 +367,22 @@ uv run python scripts/run_phase_5_nn_reduced.py
 
 **Objective:** Test whether cluster information adds predictive value on Wine.
 
+**Blocker questions — resolve after Phase 5 results are in before implementing:**
+1. Did any DR variant in Phase 5 beat raw? If yes, should Phase 6 append cluster features to the best DR input instead of raw? Or always raw per assignment?
+2. Assignment says "by themselves or by appending" — FAQ says "use only cluster derived features". Decision: appended as primary, cluster-only as stretch. Confirm this is still the right call after seeing Phase 5 numbers.
+3. What value of K (from Phase 2 sweep) should be used for cluster-derived features? Confirm it matches the frozen K from Phase 2.
+
 **Files to create:**
 - `scripts/run_phase_6_nn_cluster_features.py`
 
 **Concrete tasks:**
 
 1. `scripts/run_phase_6_nn_cluster_features.py`:
-   - 3 augmented variants (appended to raw 11 Wine features):
+   - 3 augmented variants (appended to raw 12 Wine features):
      - `kmeans_onehot`: one-hot K-Means assignments
      - `kmeans_dist`: K-Means centroid distances
      - `gmm_posterior`: GMM posterior probabilities
-   - for each variant × seeds 42–51: train `WineNN(input_dim=11+k)`, record val Macro-F1
+   - for each variant × seeds 42–51: train `WineNN(input_dim=12+k)`, record val Macro-F1
    - save `artifacts/metrics/phase6_nn_cluster/comparison_table.csv`
 
 **Validation command:**
@@ -442,6 +444,28 @@ uv run python scripts/generate_report_tables.py
 ```
 
 **Exit criteria:** Aggregated `.tex` or `.md` tables are present in `artifacts/tables/` for immediate use in the report.
+
+---
+
+### Phase 9: Report Manual TODOs
+
+**Status:** [ ] manual — to be completed by you before submission
+
+**These are not code tasks. No scripts to run.**
+
+**TODO 1 — Reproducibility sheet (separate PDF: `REPRO UL schinne3.pdf`)**
+- Include READ-ONLY Overleaf link
+- Include GitHub commit SHA from final code push
+- Exact run instructions for a standard Linux machine (env setup, commands, data paths, seeds)
+- EDA summary for both datasets — disclose that Wine uses 12 features (11 physicochemical + `type`) matching OL preprocessing; flag this diverges from any SL-era 11-feature description
+
+**TODO 2 — Report writing constraint**
+- Any `itemize`/`enumerate`/`description` list with more than 2 items → **50% deduction on overall score**
+- Convert all multi-item lists to narrative prose before submission
+
+**TODO 3 — Required inclusions in report**
+- READ-ONLY Overleaf link in report body or Canvas submission comment (missing = −5 pts)
+- AI Use Statement at the end of the report before References — list tools used and what they assisted with
 
 ---
 

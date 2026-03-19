@@ -67,18 +67,17 @@ Extra-credit track:
 
 Canonical planned representation:
 
-- Target: one label column only, normalized to the class used in prior work
-- Features: 11 physicochemical predictors
+- Target: `class` column (quality label), encoded with LabelEncoder fit on y_train only
+- Features: 12 predictors — 11 physicochemical + `type` (numeric 0/1, kept and StandardScaled)
 - Excluded fields:
-  - duplicate target column
-  - `type`
+  - `quality` (leakage — numerically encodes the target)
+  - `class` (the target itself)
 
 Rationale:
 
-- the written SL and OL reports consistently describe the Wine problem as an 11-feature physicochemical task
-- the user explicitly selected Wine because the earlier assignments found severe overlap in that feature space
-
-Note: if the Phase 0 audit reveals the OL checkpoint was trained on 12 features, treat it as non-authoritative and rebuild the raw-feature Wine NN baseline under the canonical 11-feature contract before any Step 4 comparisons.
+- Phase 0 audit confirmed OL used input_dim=12 (kept `type` as a numeric feature)
+- Matching OL's preprocessing exactly makes the UL raw-feature run numerically comparable to OL-reported Macro-F1
+- Dropping `type` would introduce a deliberate divergence that breaks the OL baseline comparison in Steps 4 & 5
 
 ## Step-Level Specification
 
@@ -132,12 +131,13 @@ Use Wine only (see dataset selection rationale under Locked Decisions).
 
 Baseline definition:
 
-- The reference model is the best Wine neural network from the OL report: a fully-connected PyTorch network trained with the Adam optimizer, using the learning rate, batch size, and early-stopping configuration that produced the best OL validation Macro-F1 on Wine.
-- If the Phase 0 audit reveals that the OL checkpoint was trained on 12 features rather than 11, the baseline must be rebuilt under the canonical 11-feature contract before any Step 4 comparisons are made.
+- The reference architecture is the best Wine neural network from the OL report: `Linear(input_dim, 100) → ReLU → Linear(100, 8)`. Inherit the architecture spec and training config (Adam lr=1e-3, batch_size=128, max_epochs=20, no early stopping in baseline) — do not inherit weights. Retrain from scratch on each UL input variant.
+- The UL raw-feature baseline uses input_dim=12 (matching OL exactly), making it directly comparable to OL-reported Macro-F1. All Step 4 comparisons are against this UL raw-feature run.
+- For PCA/ICA/RP variants, only input_dim changes — all other training config stays fixed.
 
 Compare this baseline on:
 
-- raw Wine features (the rebuilt or inherited baseline)
+- raw Wine features (input_dim=12, UL raw-feature baseline, numerically comparable to OL)
 - PCA-reduced Wine features
 - ICA-reduced Wine features
 - RP-reduced Wine features
