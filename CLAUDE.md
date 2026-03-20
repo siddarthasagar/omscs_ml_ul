@@ -7,7 +7,7 @@ Datasets: data/adult.csv, data/wine.csv.
 - Phase 1: [x] COMPLETE — data loaders, preprocessing, Gate 1 tests passing
 - Phase 2: [x] COMPLETE — raw clustering sweep done, 4 CSVs + 4 PNGs, K values frozen 2026-03-20
 - Phase 3: [x] COMPLETE — 6 CSVs + 6 PNGs, n_components frozen 2026-03-21
-- Phase 4: [x] IMPLEMENTATION COMPLETE — script written, run `make phase4` to produce artifacts 2026-03-21
+- Phase 4: [x] COMPLETE — 12 combinations run, summary_table.csv + 3 PNGs produced 2026-03-21
 - Phase 5–7: [ ] ready to implement
 Update this block at end of every session.
 

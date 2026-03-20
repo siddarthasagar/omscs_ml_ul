@@ -116,6 +116,14 @@ The RP stability plot shows reconstruction error on the Y-axis and random seeds 
 
 ---
 
+### Q: Why must the ICA kurtosis figure show the selection threshold and n_selected?
+
+**A: Without both, the reader cannot verify or reproduce the component selection decision.**
+
+The ICA kurtosis bar chart sorted by |kurtosis| shows *which components are most non-Gaussian*, but a reader has no way to know where we drew the line. Our selection rule is: retain all components with |kurtosis| ≥ median(|kurtosis|), with a floor of 2. Without a visible threshold line, the cutoff is invisible. Without `n_selected` in the title, the reader must count bars manually. The fix: compute `threshold = median(|kurtosis|)` from the DataFrame, draw a dashed red axhline labelled with its value and the resulting count, and embed `n_selected=N` in the title.
+
+---
+
 ### Q: What does the assignment mean by "explain any scaling or whitening decisions"?
 
 **A: It is asking you to justify how you preprocessed the data's variance before and during dimensionality reduction.**
