@@ -51,6 +51,7 @@ Phase execution + module design:   documents/specs/ul_execution_guide.md
 Algorithm guidance + hypotheses:   documents/specs/ul_research_notes.md
 Open issues + blockers:            documents/TODO.md
 Methodological FAQ (running log):  documents/faq.md
+Phase I/O design (log+fig+results):documents/specs/phase_io_design.md
 Assignment v2:                     documents/canvas/assignment/md/UL_Report_Spring_2026_v2.md
 FAQ v2:                            documents/canvas/assignment/md/UL_Report_Spring_2026_FAQ_v2.md
 Prior OL report:                   documents/REPORT_OL/OL_Report_schinne3.tex
