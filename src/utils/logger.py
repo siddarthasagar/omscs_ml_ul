@@ -8,7 +8,8 @@ def configure_logger(run_id: str) -> logging.Logger:
     Configure a named logger that writes to artifacts/logs/{run_id}.log and stdout.
 
     Args:
-        run_id: Unique run identifier, e.g. "phase2_20260320T143000"
+        run_id: Phase identifier, e.g. "phase2". Log is written to
+                artifacts/logs/{run_id}.log and overwrites on each run.
 
     Returns:
         Configured Logger instance. Subsequent calls with the same run_id are
@@ -28,7 +29,7 @@ def configure_logger(run_id: str) -> logging.Logger:
         datefmt="%Y-%m-%dT%H:%M:%S",
     )
 
-    fh = logging.FileHandler(log_dir / f"{run_id}.log", mode="a", encoding="utf-8")
+    fh = logging.FileHandler(log_dir / f"{run_id}.log", mode="w", encoding="utf-8")
     fh.setFormatter(fmt)
     logger.addHandler(fh)
 

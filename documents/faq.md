@@ -62,3 +62,48 @@ Wine has 8 quality classes (3–9), but the physicochemical features (alcohol, a
 Adult after one-hot encoding has 104 binary/continuous features. Euclidean distance in high-dimensional binary spaces suffers from the curse of dimensionality — distances between points become nearly uniform, which flattens the silhouette score. This is expected and is exactly why Phase 3 (dimensionality reduction) exists: PCA/ICA/RP compress Adult to a lower-dimensional space before re-clustering in Phase 4.
 
 ---
+
+### Q: What do the clustering evaluation metrics (Silhouette, Calinski-Harabasz, Davies-Bouldin, BIC, AIC) mean?
+
+**A: They are internal validation metrics used to evaluate the quality of clustering without using ground truth labels.**
+
+**K-Means Metrics:**
+*   **Silhouette Score:** Measures how similar an object is to its own cluster (cohesion) compared to other clusters (separation). Range is -1 to +1. **Higher is better.** A value near +1 indicates points are far away from neighboring clusters.
+*   **Calinski-Harabasz Index (Variance Ratio Criterion):** The ratio of the sum of between-cluster variance to within-cluster variance. **Higher is better.** It favors dense and well-separated convex (spherical) clusters.
+*   **Davies-Bouldin Index:** The average similarity measure of each cluster with its most similar cluster. **Lower is better.** A lower score means clusters are far apart and less dispersed.
+
+**GMM Metrics:**
+*   **BIC (Bayesian Information Criterion):** Estimates model likelihood while heavily penalizing complexity (number of components). **Lower is better.** It is generally preferred for choosing the final $n\_components$ since its strict penalty prevents overfitting.
+*   **AIC (Akaike Information Criterion):** Similar to BIC, it balances goodness of fit with complexity, but its penalty for adding more components is less harsh. **Lower is better**, but it can sometimes suggest a higher number of components than BIC.
+
+---
+
+### Q: Do EM and GMM mean the same thing?
+
+**A: In the context of this assignment and Scikit-Learn, yes, they are used interchangeably.**
+
+Technically, they refer to two different things:
+*   **GMM (Gaussian Mixture Model)** is the **model**. It assumes that the dataset is made up of a mixture of several different Gaussian (normal) distributions.
+*   **EM (Expectation-Maximization)** is the **algorithm** used to train that model. It is the mathematical process used to find the best parameters (means, variances, and weights) for those Gaussian distributions.
+
+When we use `sklearn.mixture.GaussianMixture` in our code, Scikit-Learn is automatically using the Expectation-Maximization (EM) algorithm under the hood to fit the model. By implementing GMM, we have successfully fulfilled the assignment's "EM/GMM" requirement.
+
+---
+
+## Phase 3 — Dimensionality Reduction
+
+### Q: What do the dimensionality reduction diagnostic plots (PCA Variance, ICA Kurtosis, RP Stability) mean?
+
+**A: They help determine the optimal number of dimensions (components) to retain for each dataset.**
+
+**PCA (Principal Component Analysis):**
+*   **Explained Variance:** Measures how much of the dataset's total variance (information) is captured by each principal component. The plot shows variance dropping off as the component number increases.
+*   **Cumulative Variance:** The running total of explained variance. You typically look for an "elbow" in the curve or a point where a target threshold (e.g., 80% to 95% of total variance) is reached, allowing you to discard less informative dimensions while preserving the core structure of the data.
+
+**ICA (Independent Component Analysis):**
+*   **Kurtosis:** A statistical measure of the "tailedness" of a distribution. ICA assumes the underlying source signals are non-Gaussian. It searches for components that maximize this non-Gaussianity. High absolute kurtosis (either very spiky or very flat distributions) indicates a component that captures a strong independent signal. A common selection strategy is to sort components by kurtosis and retain those with the highest absolute values.
+
+**RP (Random Projection):**
+*   **Reconstruction Error & Stability:** Random Projection is based on the Johnson-Lindenstrauss lemma, which states that high-dimensional points can be randomly projected into a lower-dimensional space while mostly preserving the distances between them. The stability plot typically shows the reconstruction error (or distance distortion) across multiple random seeds as the number of components increases. You want to choose a dimensionality where the error stabilizes, and the variation between different random seeds is acceptably low.
+
+---

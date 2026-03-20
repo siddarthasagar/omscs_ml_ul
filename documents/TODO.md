@@ -7,30 +7,7 @@ Update this file whenever an item is resolved or a new issue surfaces.
 
 ## Open Items
 
-### [DECISION] Freeze Phase 2 K selections before Phase 3
-
-**Status:** Decided — pending written confirmation in execution guide.
-
-Frozen K values (chosen label-free from Phase 2 metrics, see `documents/faq.md`):
-
-| Dataset | Algorithm | K |
-|---------|-----------|---|
-| Wine    | KMeans    | 2 |
-| Wine    | GMM       | 7 |
-| Adult   | KMeans    | 8 |
-| Adult   | GMM       | 7 |
-
-**Action:** Update `ul_execution_guide.md` Phase 2 status block and Phase 4 inputs to reflect these frozen values before implementing Phase 3.
-
----
-
-## Phase 3 Pre-requisites (must be true before starting)
-
-- [x] Logging wired (`src/utils/logger.py` + Phase 2 script updated 2026-03-20)
-- [ ] Phase 2 K selections documented in execution guide (table above)
-- [x] `documents/faq.md` created, Phase 2 Q&As written, Stop hook enforces rule going forward
-- [x] `wine_kmeans.csv` verified: has `inertia` column (2026-03-20)
-- [x] 4 PNG figures verified in `artifacts/figures/phase2_clustering/` (2026-03-20)
+_None currently. Next phase: Phase 4 — Clustering in Reduced Spaces._
 
 ---
 
@@ -38,6 +15,9 @@ Frozen K values (chosen label-free from Phase 2 metrics, see `documents/faq.md`)
 
 | Date       | Item |
 |------------|------|
+| 2026-03-21 | Phase 3 complete — 6 CSVs + 6 PNGs, n_components frozen (Wine: PCA=8 ICA=4 RP=8 / Adult: PCA=22 ICA=11 RP=22) |
+| 2026-03-21 | Specs reorganized — Kiro-style steering/specs/adr structure, old monolithics archived |
+| 2026-03-20 | Phase 2 K values frozen — documented in ADR-002 (supersedes "pending execution guide" action) |
 | 2026-03-20 | FAQ process established — `documents/faq.md` created, CLAUDE.md rule + Stop hook wired |
 | 2026-03-20 | Implemented `src/utils/logger.py`; wired into Phase 2 script |
 | 2026-03-20 | Added `inertia` to `run_kmeans_sweep` output |

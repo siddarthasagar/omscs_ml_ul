@@ -13,7 +13,7 @@ Every `scripts/run_phase_N_*.py` must:
 
 1. Call `configure_logger(run_id)` from `src/utils/logger.py` as the first action in `main()`.
 2. Use `log.info()` / `log.warning()` for all output. No bare `print()`.
-3. Use `run_id = f"phase{N}_{datetime.now().strftime('%Y%m%dT%H%M%S')}"`.
+3. Use `run_id = "phase{N}"` (e.g. `"phase2"`). One log file per phase, overwritten on each run.
 4. Log: phase start, dataset shapes, experiment progress, all artifact paths on save.
 
 tqdm progress bars are exempt (they write to stderr).
@@ -22,7 +22,7 @@ tqdm progress bars are exempt (they write to stderr).
 
 | Layer | Pattern | Example |
 |-------|---------|---------|
-| Log | `artifacts/logs/phase{N}_{ts}.log` | `phase2_20260320T143000.log` |
+| Log | `artifacts/logs/phase{N}.log` | `phase2.log` (overwritten on rerun) |
 | Metrics | `artifacts/metrics/phase{N}_{slug}/` | `phase2_clustering/wine_kmeans.csv` |
 | Figures | `artifacts/figures/phase{N}_{slug}/` | `phase2_clustering/wine_kmeans.png` |
 | Tables | `artifacts/tables/` | `clustering_summary.tex` |

@@ -6,7 +6,6 @@ both Wine and Adult. Saves 4 CSVs + 4 PNGs to phase2_clustering artifacts.
 """
 
 import sys
-from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -25,7 +24,7 @@ FIGURES_DIR = ARTIFACTS_DIR / "figures" / "phase2_clustering"
 
 
 def main() -> None:
-    run_id = f"phase2_{datetime.now().strftime('%Y%m%dT%H%M%S')}"
+    run_id = "phase2"
     log = configure_logger(run_id)
     log.info("Phase 2 start — run_id=%s", run_id)
 

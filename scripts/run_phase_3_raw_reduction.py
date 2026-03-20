@@ -6,7 +6,6 @@ Wine and Adult. Saves 6 CSVs + 6 PNGs to phase3_reduction artifacts.
 """
 
 import sys
-from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -103,7 +102,7 @@ def run_dataset(name: str, X_train: np.ndarray, log) -> dict:
 
 
 def main() -> None:
-    run_id = f"phase3_{datetime.now().strftime('%Y%m%dT%H%M%S')}"
+    run_id = "phase3"
     log = configure_logger(run_id)
     log.info("Phase 3 start — run_id=%s", run_id)
 
