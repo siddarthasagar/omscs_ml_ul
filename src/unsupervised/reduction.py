@@ -1,4 +1,5 @@
 """Dimensionality reduction wrappers: PCA, ICA, Random Projection, t-SNE."""
+
 import numpy as np
 from scipy import stats
 from sklearn.decomposition import FastICA, PCA
@@ -43,7 +44,9 @@ def fit_ica(
     """
     ica = FastICA(n_components=n_components, random_state=seed, max_iter=1000)
     X_transformed = ica.fit_transform(X_train)
-    kurtosis_array = np.array([stats.kurtosis(X_transformed[:, i]) for i in range(n_components)])
+    kurtosis_array = np.array(
+        [stats.kurtosis(X_transformed[:, i]) for i in range(n_components)]
+    )
     return ica, kurtosis_array
 
 
@@ -79,7 +82,11 @@ def rp_reconstruction_error(rp: SparseRandomProjection, X: np.ndarray) -> float:
     Returns:
         Mean squared reconstruction error (scalar).
     """
-    components = rp.components_.toarray() if hasattr(rp.components_, "toarray") else rp.components_
+    components = (
+        rp.components_.toarray()
+        if hasattr(rp.components_, "toarray")
+        else rp.components_
+    )
     X_projected = X @ components.T
     components_pinv = np.linalg.pinv(components)
     X_reconstructed = X_projected @ components_pinv.T

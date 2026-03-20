@@ -97,13 +97,32 @@ When we use `sklearn.mixture.GaussianMixture` in our code, Scikit-Learn is autom
 **A: They help determine the optimal number of dimensions (components) to retain for each dataset.**
 
 **PCA (Principal Component Analysis):**
-*   **Explained Variance:** Measures how much of the dataset's total variance (information) is captured by each principal component. The plot shows variance dropping off as the component number increases.
-*   **Cumulative Variance:** The running total of explained variance. You typically look for an "elbow" in the curve or a point where a target threshold (e.g., 80% to 95% of total variance) is reached, allowing you to discard less informative dimensions while preserving the core structure of the data.
+*   **Explained Variance:** Measures how much of the dataset's total variance (information) is captured by each principal component. The plot shows variance dropping off as the component number increases. **Higher is better.**
+*   **Cumulative Variance:** The running total of explained variance. **Higher is better.** You typically look for an "elbow" in the curve or a point where a target threshold (e.g., 80% to 95% of total variance) is reached, allowing you to discard less informative dimensions while preserving the core structure of the data.
 
 **ICA (Independent Component Analysis):**
-*   **Kurtosis:** A statistical measure of the "tailedness" of a distribution. ICA assumes the underlying source signals are non-Gaussian. It searches for components that maximize this non-Gaussianity. High absolute kurtosis (either very spiky or very flat distributions) indicates a component that captures a strong independent signal. A common selection strategy is to sort components by kurtosis and retain those with the highest absolute values.
+*   **Kurtosis:** A statistical measure of the "tailedness" of a distribution. ICA assumes the underlying source signals are non-Gaussian. It searches for components that maximize this non-Gaussianity. **Higher absolute value is better.** High absolute kurtosis (either very spiky or very flat distributions) indicates a component that captures a strong independent signal. A common selection strategy is to sort components by kurtosis and retain those with the highest absolute values, looking for a sharp drop-off.
 
 **RP (Random Projection):**
-*   **Reconstruction Error & Stability:** Random Projection is based on the Johnson-Lindenstrauss lemma, which states that high-dimensional points can be randomly projected into a lower-dimensional space while mostly preserving the distances between them. The stability plot typically shows the reconstruction error (or distance distortion) across multiple random seeds as the number of components increases. You want to choose a dimensionality where the error stabilizes, and the variation between different random seeds is acceptably low.
+*   **Reconstruction Error & Stability:** Random Projection is based on the Johnson-Lindenstrauss lemma, which states that high-dimensional points can be randomly projected into a lower-dimensional space while mostly preserving the distances between them. The stability plot typically shows the reconstruction error (or distance distortion) across multiple random seeds as the number of components increases. **Lower error and lower variance across seeds is better.** You want to choose a dimensionality where the error stabilizes and the variation between different random seeds is acceptably low, forming an "elbow" of stability.
+
+---
+
+### Q: Why must the RP stability figure include n_components in the title?
+
+**A: Because RP's target dimensionality is the critical context — without it the figure is uninterpretable in the report.**
+
+The RP stability plot shows reconstruction error on the Y-axis and random seeds on the X-axis. A reader looking at this graph cannot infer *what dimensionality* was being tested. In our pipeline, RP uses the exact same `n_components` as PCA (Wine=8, Adult=22), which represents a specific, deliberate compression level chosen to preserve 90% of variance. Without this in the title, the graph only shows "stability across seeds" with no indication of how aggressively the data was compressed. The fix: read `n_components` from the first row of the DataFrame and embed it in the title: `RP Reconstruction Error Across Seeds (n_components=8)`.
+
+---
+
+### Q: What does the assignment mean by "explain any scaling or whitening decisions"?
+
+**A: It is asking you to justify how you preprocessed the data's variance before and during dimensionality reduction.**
+
+*   **Scaling Decision (Our implementation):** PCA is highly sensitive to the initial scale of the data. If one feature ranges from 0-1000 and another from 0-1, PCA will incorrectly assume the first feature is the most important just because its raw variance is larger. We handled this in **Phase 1** by applying `StandardScaler` to the continuous variables in both datasets. Our decision is to ensure all features have zero mean and unit variance so PCA treats them equally.
+*   **Whitening Decision (Our implementation):** Whitening is an optional transformation that removes correlation between features and forces them all to have a variance of 1 *after* the projection.
+    *   **For PCA:** We explicitly decided **not** to use whitening (`whiten=False` is the scikit-learn default, which we kept). We want the principal components to reflect the true magnitude of the variance they explain.
+    *   **For ICA:** Whitening is a strict mathematical prerequisite for the algorithm to find independent signals. We relied on Scikit-Learn's `FastICA` default behavior, which automatically whitens the data (`whiten='arbitrary-variance'`) under the hood before extracting the independent components.
 
 ---

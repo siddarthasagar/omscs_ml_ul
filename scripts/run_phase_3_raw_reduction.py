@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from src.config import ARTIFACTS_DIR, SEED_EXPLORE, SEEDS_REPORT, WINE_N_FEATURES
+from src.config import ARTIFACTS_DIR, SEED_EXPLORE, SEEDS_REPORT
 from src.data.adult import load_adult
 from src.data.wine import load_wine
 from src.unsupervised.reduction import fit_ica, fit_pca, fit_rp, rp_reconstruction_error
@@ -52,7 +52,11 @@ def run_dataset(name: str, X_train: np.ndarray, log) -> dict:
 
     # Label-free selection: first component where cumvar >= 90%
     n_pca = int(np.searchsorted(cumvar, 0.90) + 1)
-    log.info("  PCA frozen n_components=%d (cumvar=%.3f at that point)", n_pca, cumvar[n_pca - 1])
+    log.info(
+        "  PCA frozen n_components=%d (cumvar=%.3f at that point)",
+        n_pca,
+        cumvar[n_pca - 1],
+    )
 
     # ── ICA ───────────────────────────────────────────────────────────────────
     log.info("  ICA: fitting n_components=%d ...", n_pca)
@@ -76,12 +80,16 @@ def run_dataset(name: str, X_train: np.ndarray, log) -> dict:
     log.info("  ICA frozen n_components=%d (above-median kurtosis threshold)", n_ica)
 
     # ── RP stability sweep ────────────────────────────────────────────────────
-    log.info("  RP: stability sweep over %d seeds, n_components=%d ...", len(RP_SEEDS), n_pca)
+    log.info(
+        "  RP: stability sweep over %d seeds, n_components=%d ...", len(RP_SEEDS), n_pca
+    )
     rp_records = []
     for seed in RP_SEEDS:
         rp, _ = fit_rp(X_train, n_components=n_pca, seed=seed)
         err = rp_reconstruction_error(rp, X_train)
-        rp_records.append({"seed": seed, "n_components": n_pca, "reconstruction_error": err})
+        rp_records.append(
+            {"seed": seed, "n_components": n_pca, "reconstruction_error": err}
+        )
         log.info("    seed=%d  recon_error=%.6f", seed, err)
     rp_df = pd.DataFrame(rp_records)
     rp_path = OUTPUT_DIR / f"{name}_rp_stability.csv"
@@ -120,7 +128,9 @@ def main() -> None:
 
     log.info("── Phase 3 complete. Frozen n_components:")
     for name, vals in frozen.items():
-        log.info("   %s: PCA=%d  ICA=%d  RP=%d", name, vals["pca"], vals["ica"], vals["rp"])
+        log.info(
+            "   %s: PCA=%d  ICA=%d  RP=%d", name, vals["pca"], vals["ica"], vals["rp"]
+        )
 
     log.info("── Artifacts:")
     for p in sorted(OUTPUT_DIR.glob("*.csv")):
