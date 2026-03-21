@@ -106,6 +106,8 @@ When we use `sklearn.mixture.GaussianMixture` in our code, Scikit-Learn is autom
 **RP (Random Projection):**
 *   **Reconstruction Error & Stability:** Random Projection is based on the Johnson-Lindenstrauss lemma, which states that high-dimensional points can be randomly projected into a lower-dimensional space while mostly preserving the distances between them. The stability plot typically shows the reconstruction error (or distance distortion) across multiple random seeds as the number of components increases. **Lower error and lower variance across seeds is better.** You want to choose a dimensionality where the error stabilizes and the variation between different random seeds is acceptably low, forming an "elbow" of stability.
 
+---
+
 ### Q: What is the main takeaway from the ICA results (Kurtosis)?
 
 **A: ICA successfully acts like a "metal detector" to unmix hidden, independent, non-Gaussian source signals from the raw data.**
@@ -153,9 +155,10 @@ The ICA kurtosis bar chart sorted by |kurtosis| shows *which components are most
 In Phase 4, we take the three reduced datasets (PCA, ICA, RP) and run K-Means and GMM on them using the exact same number of clusters we found in Phase 2. We then compare the resulting internal clustering metrics.
 
 **Interpreting the Bar Charts (e.g., `adult_phase4_bar.png`):**
+*   **Layout:** 2×3 subplots — top row is KMeans (Silhouette, CH, DB), bottom row is GMM (Silhouette, BIC, AIC). Each subplot has its own Y-axis in raw metric units.
 *   **X-axis:** The different dataset versions (Raw, PCA, ICA, RP).
-*   **Y-axis:** The normalized metric score.
-*   **Takeaway:** You are looking for bars that are *taller* than the "Raw" bar. If the Silhouette score for PCA is much higher than the Raw Silhouette score, it proves that compressing the data helped K-Means find denser, better-separated clusters.
+*   **Dashed baseline:** A horizontal dashed line marks the Raw bar height in each subplot, making it immediately visible whether a DR method beat or missed the baseline.
+*   **Takeaway:** You are looking for bars that cross *above* the dashed baseline. If the Silhouette subplot for PCA sits above the line, it proves that compressing the data helped K-Means find denser, better-separated clusters.
 
 **Interpreting the Heatmap (`phase4_clustering_heatmap.png`):**
 *   This is a consolidated view showing the exact metric values for every combination of Dataset × DR Method × Clustering Algorithm.
@@ -165,8 +168,8 @@ In Phase 4, we take the three reduced datasets (PCA, ICA, RP) and run K-Means an
 
 **A: Dimensionality Reduction generally *improves* Euclidean-based clustering (K-Means) on high-dimensional sparse data, but can hurt probabilistic clustering (GMM) if critical variance is discarded.**
 
-*   **For Adult (The High-Dimensional Case):** The raw Adult dataset had 104 features (mostly One-Hot Encoded), which caused K-Means to suffer from the "curse of dimensionality" (terrible Silhouette scores). When we compressed it down to 22 components via PCA or RP, the K-Means Silhouette scores likely jumped up significantly. *Takeaway: DR effectively removed the sparse "noise", allowing K-Means to finally measure meaningful Euclidean distances between demographic groups.*
-*   **For Wine (The Low-Dimensional Case):** Wine only had 11 features to begin with. Compressing it to 8 components (PCA) or 4 components (ICA) might not have drastically improved the K-Means metrics, and might have even degraded the GMM metrics (BIC) if the compression discarded subtle variance that the Gaussian distributions needed to fit properly. *Takeaway: If the raw feature space is already dense and low-dimensional, DR may actually destroy useful clustering signal rather than enhance it.*
+*   **For Adult (The High-Dimensional Case):** The raw Adult dataset had 104 OHE features with KMeans silhouette=0.114. After PCA (22d) silhouette rose to 0.140, RP (22d) to 0.139, ICA (11d) to 0.138 — a consistent ~20% improvement across all DR methods. *Takeaway: DR stripped the sparse binary noise, letting KMeans measure meaningful Euclidean distances for the first time.*
+*   **For Wine (The Low-Dimensional Case):** Wine KMeans improved under PCA (sil=0.357 vs raw 0.340) but degraded under ICA (0.194) and RP (0.260). GMM was mixed — ICA actually helped GMM (sil=0.225 vs raw 0.040) while PCA and RP hurt it. *Takeaway: When the raw feature space is already dense and low-dimensional, DR results are algorithm-dependent — PCA preserved the two-cluster geometry, but ICA's aggressive 4-component selection destroyed the KMeans structure while exposing GMM-friendly independent signals.*
 
 ---
 
@@ -179,7 +182,7 @@ In Phase 4, we take the three reduced datasets (PCA, ICA, RP) and run K-Means an
 
 ---
 
-## Phase 5 — NN on Reduced Inputs
+## Phase 5 — Neural Networks on Reduced Inputs
 
 ### Q: Why does the Phase 5 design say "only input_dim changes — all other config fixed"?
 
@@ -189,7 +192,7 @@ Phase 5 trains the same `Linear(input_dim, 100) → ReLU → Linear(100, 8)` net
 
 If any of those were allowed to vary — e.g., ICA trained for 40 epochs while raw trained for 20 — a final F1 difference could not be attributed to the representation alone. It might just mean ICA got more training time. By locking every hyperparameter except input shape, any F1 difference in the boxplot is *solely caused by the input representation*, which is the scientific question Phase 5 is designed to answer.
 
-## Phase 5 — Neural Networks on Reduced Inputs
+---
 
 ### Q: What do the Phase 5 boxplots and learning curves represent?
 
@@ -219,3 +222,22 @@ With **Wine**, you have a much more sophisticated, mathematically interesting ca
 1.  **The Information Bottleneck:** The raw Wine dataset is incredibly dense. It has 11 features that are all highly relevant to the chemical makeup of wine. It does not suffer from sparsity or the curse of dimensionality. 
 2.  **The "Lossy" Compression:** When you forced Wine through PCA down to 8 components, PCA threw away ~6% of the variance because it deemed it statistically "unimportant." But for a Neural Network trying to untangle heavily overlapping, non-linear class boundaries (predicting 8 different quality scores), that 6% variance was actually the subtle signal it needed to differentiate a "Quality 5" wine from a "Quality 6" wine.
 3.  **The Scientific Conclusion:** This allows you to conclude your report with a powerful ML lesson: *Linear Dimensionality Reduction is not a magic bullet.* While it acts as a powerful denoiser for sparse, high-dimensional data (as proven by our Phase 4 Adult K-Means results), applying it blindly to dense, low-dimensional data (like Wine) acts as a destructive information bottleneck, permanently capping the model's predictive ceiling. Graders look for this level of nuanced understanding of data geometry.
+
+---
+
+## Phase 6 — Neural Networks with Cluster-Derived Features
+
+### Q: What do the Phase 6 results show about appending cluster features?
+
+**A: They show that appending cluster-derived features as new representations successfully improves the Neural Network's predictive performance beyond the raw baseline.**
+
+*   **The Approach:** Unlike Dimensionality Reduction (which removed features and dropped performance), appending cluster features *added* new, non-linear representations of the data. 
+*   **The Result (`phase6_f1_boxplot.png`):** The boxplot clearly shows that all three augmented variants (KMEANS_ONEHOT, KMEANS_DIST, GMM_POSTERIOR) achieved median Macro-F1 scores *above* the Phase 5 Raw baseline (0.326).
+
+### Q: Which cluster-derived features were the most helpful?
+
+**A: The K-Means hard assignments (One-Hot Encoded) provided the most stable and highest performance boost.**
+
+*   **KMEANS_ONEHOT (Best):** By explicitly telling the Neural Network "this wine belongs to structural cluster A (Red) vs B (White)" (since K=2 found the red/white split), the NN didn't have to spend its capacity learning that basic structural mapping from scratch. It could use the raw features to focus entirely on learning the finer, non-linear boundaries separating the 8 quality classes.
+*   **GMM_POSTERIOR (Strong but high variance):** Providing the soft probabilities of belonging to the 7 GMM clusters also improved the median F1 significantly, but the variance across seeds was much wider. 
+*   **KMEANS_DIST (Weakest improvement):** Distances to the 2 K-Means centroids provided the smallest median improvement. This is likely because simple Euclidean distances to just two centroids are highly collinear with the raw continuous features, offering less novel "structural" information to the network than explicit categorical bounds.
