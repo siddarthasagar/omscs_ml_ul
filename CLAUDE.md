@@ -8,7 +8,9 @@ Datasets: data/adult.csv, data/wine.csv.
 - Phase 2: [x] COMPLETE — raw clustering sweep done, 4 CSVs + 4 PNGs, K values frozen 2026-03-20
 - Phase 3: [x] COMPLETE — 6 CSVs + 6 PNGs, n_components frozen 2026-03-21
 - Phase 4: [x] COMPLETE — 12 combinations run, summary_table.csv + 3 PNGs produced 2026-03-21
-- Phase 5–7: [ ] ready to implement
+- Phase 5: [x] COMPLETE — 40 runs (4 variants × 10 seeds), 2 figures, Gate 3 passed 2026-03-21
+- Phase 6: [x] COMPLETE — 30 runs (3 variants × 10 seeds), 1 figure, baseline overlaid 2026-03-21
+- Phase 7: [ ] ready to implement (optional/extra credit)
 Update this block at end of every session.
 
 ## Session Rules (enforced every conversation)

@@ -287,33 +287,41 @@ def plot_phase4_comparison(
     return out_path
 
 
-def plot_f1_comparison(df: pd.DataFrame, out_dir: Path) -> Path:
+def plot_f1_comparison(
+    df: pd.DataFrame,
+    out_dir: Path,
+    title: str = "Wine NN Macro-F1 Comparison",
+    out_name: str = "f1_boxplot.png",
+    baseline_val: float | None = None,
+    baseline_label: str | None = None,
+) -> Path:
     """
-    Boxplot of val_macro_f1 across seeds for each variant (raw, pca, ica, rp).
-    df must have cols: variant, val_f1.
-    Draws a dashed baseline at the median of the "raw" variant.
-    Saves to out_dir/phase5_f1_boxplot.png.
+    Boxplot of val_f1 across seeds, one box per variant.
+    df must have cols: variant, val_f1. Variants are taken from df in their natural order.
+
+    Args:
+        baseline_val:  If provided, draws a dashed horizontal line at this value.
+        baseline_label: Legend label for the baseline line. Defaults to "Baseline = {val}".
+    Saves to out_dir/{out_name}.
     """
-    variants = ["raw", "pca", "ica", "rp"]
+    variants = list(dict.fromkeys(df["variant"]))  # preserve insertion order, deduplicate
     data = [df[df["variant"] == v]["val_f1"].values for v in variants]
+    palette = ["tab:gray", "tab:blue", "tab:orange", "tab:green", "tab:red", "tab:purple"]
 
     fig, ax = plt.subplots(figsize=(8, 5))
     bp = ax.boxplot(data, labels=[v.upper() for v in variants], patch_artist=True)
-    colors = ["tab:gray", "tab:blue", "tab:orange", "tab:green"]
-    for patch, color in zip(bp["boxes"], colors):
+    for patch, color in zip(bp["boxes"], palette):
         patch.set_facecolor(color)
         patch.set_alpha(0.7)
 
-    raw_median = float(np.median(df[df["variant"] == "raw"]["val_f1"].values))
-    ax.axhline(raw_median, color="black", linestyle="--", linewidth=1.2, label=f"Raw median = {raw_median:.3f}")
-    ax.set(
-        title="Phase 5 — Wine NN Macro-F1: Raw vs Reduced Inputs (10 seeds)",
-        xlabel="Input Variant",
-        ylabel="Val Macro-F1",
-    )
+    if baseline_val is not None:
+        label = baseline_label or f"Baseline = {baseline_val:.3f}"
+        ax.axhline(baseline_val, color="black", linestyle="--", linewidth=1.2, label=label)
+
+    ax.set(title=title, xlabel="Input Variant", ylabel="Val Macro-F1")
     ax.legend(fontsize=9)
     fig.tight_layout()
-    out_path = out_dir / "phase5_f1_boxplot.png"
+    out_path = out_dir / out_name
     fig.savefig(out_path, dpi=150)
     plt.close(fig)
     return out_path

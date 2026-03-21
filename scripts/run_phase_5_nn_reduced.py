@@ -120,7 +120,15 @@ def main() -> None:
 
     # ── Figures ────────────────────────────────────────────────────────────────
     f1_plot_df = comparison_df.rename(columns={"val_f1_final": "val_f1"})
-    fig_path = plot_f1_comparison(f1_plot_df, FIGURES_DIR)
+    raw_median = float(f1_plot_df[f1_plot_df["variant"] == "raw"]["val_f1"].median())
+    fig_path = plot_f1_comparison(
+        f1_plot_df,
+        FIGURES_DIR,
+        title="Phase 5 — Wine NN Macro-F1: Raw vs Reduced Inputs (10 seeds)",
+        out_name="phase5_f1_boxplot.png",
+        baseline_val=raw_median,
+        baseline_label=f"Raw median = {raw_median:.3f}",
+    )
     log.info("F1 boxplot → %s", fig_path)
 
     full_history = pd.concat(all_histories, ignore_index=True)

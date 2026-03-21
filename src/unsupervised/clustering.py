@@ -7,6 +7,7 @@ from sklearn.metrics import (
     silhouette_score,
 )
 from sklearn.mixture import GaussianMixture
+from sklearn.preprocessing import OneHotEncoder
 
 
 def run_kmeans_sweep(
@@ -71,3 +72,66 @@ def run_gmm_sweep(
             }
         )
     return pd.DataFrame(records)
+
+
+# ── Phase 6: cluster feature builders ─────────────────────────────────────────
+
+def make_kmeans_onehot(
+    X_train: np.ndarray,
+    X_val: np.ndarray,
+    k: int,
+    seed: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Fit KMeans(k) on X_train, append one-hot cluster assignment to each split.
+    Returns (X_train_aug, X_val_aug) with shape (n, original_dim + k).
+    """
+    km = KMeans(n_clusters=k, random_state=seed, n_init="auto")
+    train_labels = km.fit_predict(X_train).reshape(-1, 1)
+    val_labels = km.predict(X_val).reshape(-1, 1)
+
+    enc = OneHotEncoder(categories=[list(range(k))], sparse_output=False)
+    train_oh = enc.fit_transform(train_labels).astype(np.float32)
+    val_oh = enc.transform(val_labels).astype(np.float32)
+
+    return np.hstack([X_train, train_oh]), np.hstack([X_val, val_oh])
+
+
+def make_kmeans_dist(
+    X_train: np.ndarray,
+    X_val: np.ndarray,
+    k: int,
+    seed: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Fit KMeans(k) on X_train, append Euclidean distance to each centroid.
+    Returns (X_train_aug, X_val_aug) with shape (n, original_dim + k).
+    """
+    km = KMeans(n_clusters=k, random_state=seed, n_init="auto")
+    km.fit(X_train)
+
+    def _dists(X: np.ndarray) -> np.ndarray:
+        return np.linalg.norm(
+            X[:, np.newaxis, :] - km.cluster_centers_[np.newaxis, :, :], axis=2
+        ).astype(np.float32)
+
+    return np.hstack([X_train, _dists(X_train)]), np.hstack([X_val, _dists(X_val)])
+
+
+def make_gmm_posterior(
+    X_train: np.ndarray,
+    X_val: np.ndarray,
+    n: int,
+    seed: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Fit GMM(n_components=n) on X_train, append soft posterior P(component|x).
+    Returns (X_train_aug, X_val_aug) with shape (n_samples, original_dim + n).
+    """
+    gmm = GaussianMixture(n_components=n, random_state=seed, reg_covar=1e-3)
+    gmm.fit(X_train.astype(np.float64))
+
+    train_post = gmm.predict_proba(X_train.astype(np.float64)).astype(np.float32)
+    val_post = gmm.predict_proba(X_val.astype(np.float64)).astype(np.float32)
+
+    return np.hstack([X_train, train_post]), np.hstack([X_val, val_post])
