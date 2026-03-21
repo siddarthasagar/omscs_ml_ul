@@ -106,6 +106,15 @@ When we use `sklearn.mixture.GaussianMixture` in our code, Scikit-Learn is autom
 **RP (Random Projection):**
 *   **Reconstruction Error & Stability:** Random Projection is based on the Johnson-Lindenstrauss lemma, which states that high-dimensional points can be randomly projected into a lower-dimensional space while mostly preserving the distances between them. The stability plot typically shows the reconstruction error (or distance distortion) across multiple random seeds as the number of components increases. **Lower error and lower variance across seeds is better.** You want to choose a dimensionality where the error stabilizes and the variation between different random seeds is acceptably low, forming an "elbow" of stability.
 
+### Q: What is the main takeaway from the ICA results (Kurtosis)?
+
+**A: ICA successfully acts like a "metal detector" to unmix hidden, independent, non-Gaussian source signals from the raw data.**
+
+Unlike PCA, which compresses data to preserve variance, ICA attempts to unmix overlapping signals (like trying to separate two voices recorded on the same microphone). It does this by measuring **Kurtosis**. According to the Central Limit Theorem, mixed signals look like a normal bell curve (Gaussian, kurtosis ≈ 0). Therefore, to find the independent source signals, ICA looks for components that are highly *non-Gaussian* (very "spiky" or very flat distributions), resulting in a high absolute kurtosis.
+
+*   **Wine Takeaway:** Out of the 8 components tested, Component 6 had an absolutely massive kurtosis spike (~77), with a few others showing strong signals. The rest were close to 0 (Gaussian noise). This suggests there are a handful of truly distinct, independent physicochemical drivers hidden within the 11 raw features.
+*   **Adult Takeaway:** Out of the 22 components tested, one component had a staggering kurtosis of ~143. In the high-dimensional, one-hot encoded space, this indicates ICA found a highly specific, isolated feature (likely a demographic outlier or an extremely imbalanced categorical variable) that acts as a strong, independent signal.
+
 ---
 
 ### Q: Why must the RP stability figure include n_components in the title?
@@ -134,3 +143,27 @@ The ICA kurtosis bar chart sorted by |kurtosis| shows *which components are most
     *   **For ICA:** Whitening is a strict mathematical prerequisite for the algorithm to find independent signals. We relied on Scikit-Learn's `FastICA` default behavior, which automatically whitens the data (`whiten='arbitrary-variance'`) under the hood before extracting the independent components.
 
 ---
+
+## Phase 4 — Clustering in Reduced Spaces
+
+### Q: What do the Phase 4 bar charts and heatmaps represent?
+
+**A: They visualize whether dimensionality reduction made the clusters better or worse compared to clustering on raw data.**
+
+In Phase 4, we take the three reduced datasets (PCA, ICA, RP) and run K-Means and GMM on them using the exact same number of clusters we found in Phase 2. We then compare the resulting internal clustering metrics.
+
+**Interpreting the Bar Charts (e.g., `adult_phase4_bar.png`):**
+*   **X-axis:** The different dataset versions (Raw, PCA, ICA, RP).
+*   **Y-axis:** The normalized metric score.
+*   **Takeaway:** You are looking for bars that are *taller* than the "Raw" bar. If the Silhouette score for PCA is much higher than the Raw Silhouette score, it proves that compressing the data helped K-Means find denser, better-separated clusters.
+
+**Interpreting the Heatmap (`phase4_clustering_heatmap.png`):**
+*   This is a consolidated view showing the exact metric values for every combination of Dataset × DR Method × Clustering Algorithm.
+*   It allows you to quickly scan for the highest (or lowest) values across all experiments at once.
+
+### Q: What is the main takeaway from the Phase 4 results?
+
+**A: Dimensionality Reduction generally *improves* Euclidean-based clustering (K-Means) on high-dimensional sparse data, but can hurt probabilistic clustering (GMM) if critical variance is discarded.**
+
+*   **For Adult (The High-Dimensional Case):** The raw Adult dataset had 104 features (mostly One-Hot Encoded), which caused K-Means to suffer from the "curse of dimensionality" (terrible Silhouette scores). When we compressed it down to 22 components via PCA or RP, the K-Means Silhouette scores likely jumped up significantly. *Takeaway: DR effectively removed the sparse "noise", allowing K-Means to finally measure meaningful Euclidean distances between demographic groups.*
+*   **For Wine (The Low-Dimensional Case):** Wine only had 11 features to begin with. Compressing it to 8 components (PCA) or 4 components (ICA) might not have drastically improved the K-Means metrics, and might have even degraded the GMM metrics (BIC) if the compression discarded subtle variance that the Gaussian distributions needed to fit properly. *Takeaway: If the raw feature space is already dense and low-dimensional, DR may actually destroy useful clustering signal rather than enhance it.*

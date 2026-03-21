@@ -88,7 +88,7 @@ def cluster_gmm(X: np.ndarray, n: int, seed: int) -> dict:
 
 
 def load_phase2_baseline(dataset: str) -> pd.DataFrame:
-    """Load Phase 2 CSV results at frozen K for raw-space baseline."""
+    """Load Phase 2 CSV results at frozen K for raw-space baseline (all metrics)."""
     f = FROZEN[dataset]
     records = []
 
@@ -97,8 +97,17 @@ def load_phase2_baseline(dataset: str) -> pd.DataFrame:
         km_df = pd.read_csv(km_csv)
         row = km_df[km_df["k"] == f["kmeans_k"]]
         if not row.empty:
+            r = row.iloc[0]
             records.append(
-                {"clusterer": "KMeans", "silhouette": row["silhouette"].iloc[0]}
+                {
+                    "clusterer": "KMeans",
+                    "silhouette": r["silhouette"],
+                    "calinski_harabasz": r["calinski_harabasz"],
+                    "davies_bouldin": r["davies_bouldin"],
+                    "inertia": r["inertia"],
+                    "bic": None,
+                    "aic": None,
+                }
             )
 
     gmm_csv = PHASE2_METRICS / f"{dataset}_gmm.csv"
@@ -106,8 +115,17 @@ def load_phase2_baseline(dataset: str) -> pd.DataFrame:
         gmm_df = pd.read_csv(gmm_csv)
         row = gmm_df[gmm_df["n_components"] == f["gmm_n"]]
         if not row.empty:
+            r = row.iloc[0]
             records.append(
-                {"clusterer": "GMM", "silhouette": row["silhouette"].iloc[0]}
+                {
+                    "clusterer": "GMM",
+                    "silhouette": r["silhouette"],
+                    "calinski_harabasz": None,
+                    "davies_bouldin": None,
+                    "inertia": None,
+                    "bic": r["bic"],
+                    "aic": r["aic"],
+                }
             )
 
     return pd.DataFrame(records)

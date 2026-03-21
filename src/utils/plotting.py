@@ -133,8 +133,8 @@ def plot_ica_kurtosis(df: pd.DataFrame, dataset_name: str, out_dir: Path) -> Pat
 
 def plot_phase4_heatmap(df: pd.DataFrame, out_dir: Path) -> Path:
     """
-    Heatmap of silhouette scores across all 12 Phase 4 combinations.
-    df must have cols: dataset, dr_method, clusterer, silhouette.
+    1×3 subplot heatmap: Silhouette, Calinski-Harabasz, Davies-Bouldin.
+    Each subplot has its own color scale (per-metric normalization).
     Rows = (dataset, clusterer), Cols = DR method.
     Saves to out_dir/phase4_clustering_heatmap.png.
     """
@@ -147,34 +147,51 @@ def plot_phase4_heatmap(df: pd.DataFrame, out_dir: Path) -> Path:
     dr_methods = ["PCA", "ICA", "RP"]
     row_labels = [f"{d.title()} {c}" for d, c in combos]
 
-    matrix = np.full((len(combos), len(dr_methods)), np.nan)
-    for i, (ds, cl) in enumerate(combos):
-        for j, dr in enumerate(dr_methods):
-            mask = (
-                (df["dataset"] == ds)
-                & (df["clusterer"] == cl)
-                & (df["dr_method"] == dr)
-            )
-            rows = df[mask]
-            if not rows.empty:
-                matrix[i, j] = rows["silhouette"].iloc[0]
+    # (metric_col, label, cmap, fmt)
+    metrics = [
+        ("silhouette", "Silhouette (↑)", "RdYlGn", ".3f"),
+        ("calinski_harabasz", "Calinski-Harabasz (↑)", "RdYlGn", ".0f"),
+        ("davies_bouldin", "Davies-Bouldin (↓)", "RdYlGn_r", ".3f"),
+    ]
 
-    fig, ax = plt.subplots(figsize=(7, 5))
-    im = ax.imshow(matrix, aspect="auto", cmap="RdYlGn", vmin=-0.1, vmax=0.5)
-    fig.colorbar(im, ax=ax, label="Silhouette")
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+    fig.suptitle("Phase 4 — Clustering Metrics in Reduced Spaces", fontsize=13)
 
-    ax.set_xticks(range(len(dr_methods)))
-    ax.set_xticklabels(dr_methods)
-    ax.set_yticks(range(len(row_labels)))
-    ax.set_yticklabels(row_labels)
-    ax.set_title("Phase 4 — Silhouette in Reduced Spaces", fontsize=13)
-
-    for i in range(len(combos)):
-        for j in range(len(dr_methods)):
-            if not np.isnan(matrix[i, j]):
-                ax.text(
-                    j, i, f"{matrix[i, j]:.3f}", ha="center", va="center", fontsize=9
+    for ax, (col, label, cmap, fmt) in zip(axes, metrics):
+        matrix = np.full((len(combos), len(dr_methods)), np.nan)
+        for i, (ds, cl) in enumerate(combos):
+            for j, dr in enumerate(dr_methods):
+                mask = (
+                    (df["dataset"] == ds)
+                    & (df["clusterer"] == cl)
+                    & (df["dr_method"] == dr)
                 )
+                rows = df[mask]
+                if not rows.empty:
+                    matrix[i, j] = rows[col].iloc[0]
+
+        valid = matrix[~np.isnan(matrix)]
+        vmin, vmax = (valid.min(), valid.max()) if len(valid) else (0, 1)
+        im = ax.imshow(matrix, aspect="auto", cmap=cmap, vmin=vmin, vmax=vmax)
+        fig.colorbar(im, ax=ax, shrink=0.8)
+
+        ax.set_xticks(range(len(dr_methods)))
+        ax.set_xticklabels(dr_methods)
+        ax.set_yticks(range(len(row_labels)))
+        ax.set_yticklabels(row_labels)
+        ax.set_title(label, fontsize=11)
+
+        for i in range(len(combos)):
+            for j in range(len(dr_methods)):
+                if not np.isnan(matrix[i, j]):
+                    ax.text(
+                        j,
+                        i,
+                        format(matrix[i, j], fmt),
+                        ha="center",
+                        va="center",
+                        fontsize=8,
+                    )
 
     fig.tight_layout()
     out_path = out_dir / "phase4_clustering_heatmap.png"
@@ -190,44 +207,78 @@ def plot_phase4_comparison(
     out_dir: Path,
 ) -> Path:
     """
-    Grouped bar: silhouette for raw vs PCA vs ICA vs RP, grouped by clusterer.
-    df_reduced: Phase 4 rows for this dataset (cols: dr_method, clusterer, silhouette).
-    df_raw: Phase 2 rows for this dataset at frozen K (cols: clusterer, silhouette).
+    2×3 subplot grid: top row = KMeans metrics (Silhouette, CH, DB),
+    bottom row = GMM metrics (Silhouette, BIC, AIC).
+    Each subplot: X-axis = Raw/PCA/ICA/RP, with a dashed baseline from the Raw bar.
+    df_reduced: Phase 4 rows for this dataset.
+    df_raw: Phase 2 rows at frozen K with all metric columns.
     Saves to out_dir/{dataset_name}_phase4_bar.png.
     """
-    clusterers = ["KMeans", "GMM"]
     dr_labels = ["Raw", "PCA", "ICA", "RP"]
-    x = np.arange(len(clusterers))
-    width = 0.18
-    offsets = (
-        np.linspace(-(len(dr_labels) - 1) / 2, (len(dr_labels) - 1) / 2, len(dr_labels))
-        * width
+    colors = ["tab:gray", "tab:blue", "tab:orange", "tab:green"]
+    x = np.arange(len(dr_labels))
+    width = 0.6
+
+    # (clusterer, metric_col, ylabel, higher_is_better)
+    subplots = [
+        ("KMeans", "silhouette", "Silhouette", True),
+        ("KMeans", "calinski_harabasz", "Calinski-Harabasz", True),
+        ("KMeans", "davies_bouldin", "Davies-Bouldin", False),
+        ("GMM", "silhouette", "Silhouette", True),
+        ("GMM", "bic", "BIC", False),
+        ("GMM", "aic", "AIC", False),
+    ]
+
+    fig, axes = plt.subplots(2, 3, figsize=(13, 8))
+    fig.suptitle(
+        f"{dataset_name.title()} — Raw vs Reduced Space Clustering", fontsize=13
     )
 
-    fig, ax = plt.subplots(figsize=(8, 5))
-    colors = ["tab:gray", "tab:blue", "tab:orange", "tab:green"]
-
-    for k, (label, color, offset) in enumerate(zip(dr_labels, colors, offsets)):
+    for ax, (clusterer, metric, ylabel, higher) in zip(axes.flat, subplots):
         values = []
-        for cl in clusterers:
+        for label in dr_labels:
             if label == "Raw":
-                row = df_raw[(df_raw["clusterer"] == cl)]
-                values.append(row["silhouette"].iloc[0] if not row.empty else 0.0)
+                row = df_raw[df_raw["clusterer"] == clusterer]
+                val = (
+                    row[metric].iloc[0]
+                    if (
+                        not row.empty
+                        and metric in row.columns
+                        and pd.notna(row[metric].iloc[0])
+                    )
+                    else np.nan
+                )
             else:
                 row = df_reduced[
-                    (df_reduced["dr_method"] == label) & (df_reduced["clusterer"] == cl)
+                    (df_reduced["dr_method"] == label)
+                    & (df_reduced["clusterer"] == clusterer)
                 ]
-                values.append(row["silhouette"].iloc[0] if not row.empty else 0.0)
-        ax.bar(x + offset, values, width, label=label, color=color)
+                val = (
+                    row[metric].iloc[0]
+                    if (not row.empty and pd.notna(row[metric].iloc[0]))
+                    else np.nan
+                )
+            values.append(val)
 
-    ax.set_xticks(x)
-    ax.set_xticklabels(clusterers)
-    ax.set_ylabel("Silhouette Score")
-    ax.set_title(
-        f"{dataset_name.title()} — Silhouette: Raw vs Reduced Spaces", fontsize=13
-    )
-    ax.legend()
-    ax.axhline(0, color="black", linewidth=0.5)
+        _bars = ax.bar(x, values, width, color=colors)
+
+        # Dashed baseline from Raw value
+        raw_val = values[0]
+        if not np.isnan(raw_val):
+            ax.axhline(
+                raw_val,
+                color="black",
+                linestyle="--",
+                linewidth=1.2,
+                label="Raw baseline",
+            )
+
+        direction = "↑ better" if higher else "↓ better"
+        ax.set_title(f"{clusterer} — {ylabel} ({direction})", fontsize=10)
+        ax.set_xticks(x)
+        ax.set_xticklabels(dr_labels)
+        ax.set_ylabel(ylabel)
+        ax.legend(fontsize=8)
 
     fig.tight_layout()
     out_path = out_dir / f"{dataset_name}_phase4_bar.png"
