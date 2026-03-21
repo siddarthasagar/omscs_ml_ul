@@ -9,9 +9,9 @@
 | Variant | input_dim |
 |---------|-----------|
 | raw | 12 |
-| pca | TBD (from Phase 3) |
-| ica | TBD (from Phase 3) |
-| rp | TBD (from Phase 3) |
+| pca | 8 |
+| ica | 4 |
+| rp | 8 |
 
 Only input_dim changes. All other config (Adam, lr=1e-3, batch_size=128, max_epochs=20) is fixed.
 

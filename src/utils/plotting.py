@@ -287,6 +287,81 @@ def plot_phase4_comparison(
     return out_path
 
 
+def plot_f1_comparison(df: pd.DataFrame, out_dir: Path) -> Path:
+    """
+    Boxplot of val_macro_f1 across seeds for each variant (raw, pca, ica, rp).
+    df must have cols: variant, val_f1.
+    Draws a dashed baseline at the median of the "raw" variant.
+    Saves to out_dir/phase5_f1_boxplot.png.
+    """
+    variants = ["raw", "pca", "ica", "rp"]
+    data = [df[df["variant"] == v]["val_f1"].values for v in variants]
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    bp = ax.boxplot(data, labels=[v.upper() for v in variants], patch_artist=True)
+    colors = ["tab:gray", "tab:blue", "tab:orange", "tab:green"]
+    for patch, color in zip(bp["boxes"], colors):
+        patch.set_facecolor(color)
+        patch.set_alpha(0.7)
+
+    raw_median = float(np.median(df[df["variant"] == "raw"]["val_f1"].values))
+    ax.axhline(raw_median, color="black", linestyle="--", linewidth=1.2, label=f"Raw median = {raw_median:.3f}")
+    ax.set(
+        title="Phase 5 — Wine NN Macro-F1: Raw vs Reduced Inputs (10 seeds)",
+        xlabel="Input Variant",
+        ylabel="Val Macro-F1",
+    )
+    ax.legend(fontsize=9)
+    fig.tight_layout()
+    out_path = out_dir / "phase5_f1_boxplot.png"
+    fig.savefig(out_path, dpi=150)
+    plt.close(fig)
+    return out_path
+
+
+def plot_learning_curves(history_df: pd.DataFrame, out_dir: Path) -> Path:
+    """
+    All variants overlaid on shared axes: 1×3 subplots (Train Loss, Val Loss, Val F1).
+    Each variant is one colored line (mean across seeds) with a ±1 std shaded band.
+    history_df must have cols: variant, seed, epoch, train_loss, val_loss, val_f1.
+    Saves to out_dir/phase5_learning_curves.png.
+    """
+    variants = ["raw", "pca", "ica", "rp"]
+    colors = {"raw": "tab:gray", "pca": "tab:blue", "ica": "tab:orange", "rp": "tab:green"}
+    n_seeds = history_df["seed"].nunique()
+
+    fig, axes = plt.subplots(1, 3, figsize=(14, 4))
+    fig.suptitle(f"Phase 5 — Wine NN Learning Curves ({n_seeds} seeds, mean ± std)", fontsize=12)
+
+    panels = [
+        (axes[0], "train_loss", "Train Loss",  "Loss"),
+        (axes[1], "val_loss",   "Val Loss",    "Loss"),
+        (axes[2], "val_f1",     "Val Macro-F1","F1"),
+    ]
+
+    for ax, metric, title, ylabel in panels:
+        for v in variants:
+            agg = (
+                history_df[history_df["variant"] == v]
+                .groupby("epoch")[metric]
+                .agg(["mean", "std"])
+                .reset_index()
+            )
+            epochs = agg["epoch"]
+            color = colors[v]
+            ax.plot(epochs, agg["mean"], color=color, label=v.upper())
+            ax.fill_between(epochs, agg["mean"] - agg["std"], agg["mean"] + agg["std"],
+                            alpha=0.15, color=color)
+        ax.set(title=title, xlabel="Epoch", ylabel=ylabel)
+        ax.legend(fontsize=8)
+
+    fig.tight_layout()
+    out_path = out_dir / "phase5_learning_curves.png"
+    fig.savefig(out_path, dpi=150)
+    plt.close(fig)
+    return out_path
+
+
 def plot_rp_stability(df: pd.DataFrame, dataset_name: str, out_dir: Path) -> Path:
     """
     Line plot of reconstruction error per seed across RP seeds.
