@@ -241,3 +241,31 @@ With **Wine**, you have a much more sophisticated, mathematically interesting ca
 *   **KMEANS_ONEHOT (Best):** By explicitly telling the Neural Network "this wine belongs to structural cluster A (Red) vs B (White)" (since K=2 found the red/white split), the NN didn't have to spend its capacity learning that basic structural mapping from scratch. It could use the raw features to focus entirely on learning the finer, non-linear boundaries separating the 8 quality classes.
 *   **GMM_POSTERIOR (Strong but high variance):** Providing the soft probabilities of belonging to the 7 GMM clusters also improved the median F1 significantly, but the variance across seeds was much wider. 
 *   **KMEANS_DIST (Weakest improvement):** Distances to the 2 K-Means centroids provided the smallest median improvement. This is likely because simple Euclidean distances to just two centroids are highly collinear with the raw continuous features, offering less novel "structural" information to the network than explicit categorical bounds.
+
+---
+
+## Phase 7 — t-SNE Visualization
+
+### Q: Why does Phase 7 produce no metrics CSV — only figures?
+
+**A: t-SNE is a qualitative visualization tool. It produces no numbers that are meaningful to compare or report.**
+
+The only numerical output t-SNE exposes is `kl_divergence_` — the final KL divergence between the high-dimensional pairwise similarities and the 2D embedding. This number is not useful because:
+
+1. **Not comparable across datasets:** A lower KL divergence for Wine vs Adult tells you nothing — the datasets have different sizes, dimensionalities, and neighborhood structures.
+2. **Not comparable across settings:** KL divergence changes with perplexity, so it cannot be used to justify the perplexity=30 choice.
+3. **Not a clustering or classification metric:** It only measures how well t-SNE optimized its own objective, not how well the embedding reveals class or cluster structure.
+
+The "output" of Phase 7 is visual insight read from the scatter plots — do quality class boundaries look separable? Do KMeans cluster assignments align with visible geometric structure? Those observations go into the report as prose. Phase 7 figures are qualitative evidence, not quantitative results. Per the design spec: do not make quantitative claims from t-SNE plots.
+
+## Phase 7 — t-SNE Extra Credit
+
+### Q: What do the t-SNE plots visually prove about our datasets?
+
+**A: They visually validate the mathematical conclusions we drew in Phase 2 (Clustering), Phase 4 (Clustering in Reduced Spaces), and Phase 5/6 (Neural Networks).**
+
+*   **Wine (The "Two Island" Problem):** The Wine t-SNE plot clearly separates into two massive, distinct islands. When colored by KMeans (K=2), we see the algorithm perfectly identified this macro-structure (Red vs. White wine). However, when colored by the ground-truth Quality labels, the colors are entirely mixed within those islands. 
+    *   *Why DR hurt Wine (Phase 5):* Because the quality classes are so heavily overlapping inside the islands, the Neural Network needs every ounce of subtle variance to draw complex boundaries. Throwing away variance (via PCA/ICA) destroys the critical signals needed to untangle them.
+    *   *Why KMeans helped Wine (Phase 6):* Passing the KMeans cluster as a feature explicitly told the Neural Network "this is Island A" or "this is Island B", solving the macro-structure problem automatically and letting the network focus 100% on untangling the messy quality labels inside.
+*   **Adult (The Continuous Manifold):** The Adult t-SNE plot forms a single, massive, continuous blob rather than distinct islands. When colored by KMeans (K=8), the boundaries are arbitrary and messy. 
+    *   *Why DR helped Adult (Phase 4):* This visually explains the poor Euclidean clustering metrics from Phase 2. High-dimensional, sparse categorical data does not form dense, cleanly separated spheres in raw feature space. This is exactly why dimensionality reduction (PCA/RP) in Phase 4 *improved* the KMeans clustering: it stripped away the 104D sparse noise, allowing KMeans to finally measure meaningful Euclidean distances across the continuous blob.

@@ -10,7 +10,7 @@ Datasets: data/adult.csv, data/wine.csv.
 - Phase 4: [x] COMPLETE — 12 combinations run, summary_table.csv + 3 PNGs produced 2026-03-21
 - Phase 5: [x] COMPLETE — 40 runs (4 variants × 10 seeds), 2 figures, Gate 3 passed 2026-03-21
 - Phase 6: [x] COMPLETE — 30 runs (3 variants × 10 seeds), 1 figure, baseline overlaid 2026-03-21
-- Phase 7: [ ] ready to implement (optional/extra credit)
+- Phase 7: [x] COMPLETE — 4 t-SNE PNGs (labels + clusters for Wine and Adult) 2026-03-21
 Update this block at end of every session.
 
 ## Session Rules (enforced every conversation)

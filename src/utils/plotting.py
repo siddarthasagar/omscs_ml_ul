@@ -370,6 +370,47 @@ def plot_learning_curves(history_df: pd.DataFrame, out_dir: Path) -> Path:
     return out_path
 
 
+def plot_tsne(
+    embedding: np.ndarray,
+    labels: np.ndarray,
+    title: str,
+    out_path: Path,
+) -> Path:
+    """
+    Scatter plot of a 2D t-SNE embedding coloured by labels.
+    Labels may be ground-truth classes or cluster assignments.
+    Qualitative only — do not interpret inter-cluster distances.
+    Saves to out_path.
+    """
+    fig, ax = plt.subplots(figsize=(8, 6))
+    unique_labels = np.unique(labels)
+    cmap = plt.get_cmap("tab10" if len(unique_labels) <= 10 else "tab20")
+
+    for i, lbl in enumerate(unique_labels):
+        mask = labels == lbl
+        ax.scatter(
+            embedding[mask, 0],
+            embedding[mask, 1],
+            s=8,
+            alpha=0.5,
+            color=cmap(i / max(len(unique_labels) - 1, 1)),
+            label=str(lbl),
+        )
+
+    ax.set(title=title, xlabel="t-SNE dim 1", ylabel="t-SNE dim 2")
+    ax.legend(
+        markerscale=2,
+        fontsize=8,
+        loc="best",
+        title="Label",
+        ncol=2 if len(unique_labels) > 6 else 1,
+    )
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=150)
+    plt.close(fig)
+    return out_path
+
+
 def plot_rp_stability(df: pd.DataFrame, dataset_name: str, out_dir: Path) -> Path:
     """
     Line plot of reconstruction error per seed across RP seeds.
