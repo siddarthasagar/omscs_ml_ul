@@ -1,0 +1,12 @@
+\begin{tabular}{llrrrr}
+\toprule
+Dataset & Algorithm & $K$ & Silhouette & CH / BIC & DB / AIC \\
+\midrule
+Wine & K-Means & 2 & 0.340 & 1497 & 1.335 \\
+Wine & GMM (EM) & 7 & 0.040 & 60841 & 56855 \\
+Adult & K-Means & 8 & 0.114 & 2583 & 2.064 \\
+Adult & GMM (EM) & 7 & 0.058 & -8290938 & -8610691 \\
+\midrule
+\multicolumn{6}{l}{\footnotesize CH = Calinski-Harabasz (\textuparrow); DB = Davies-Bouldin (\textdownarrow); BIC/AIC (\textdownarrow)} \\
+\bottomrule
+\end{tabular}

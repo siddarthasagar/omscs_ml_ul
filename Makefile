@@ -73,7 +73,7 @@ phase7: ## Phase 7 — t-SNE visualizations (extra credit)
 	bash ml_run.sh "$(PY) scripts/run_phase_7_tsne.py"
 
 phase8: ## Phase 8 — generate report tables from artifacts
-	bash ml_run.sh "$(PY) scripts/generate_report_tables.py"
+	bash ml_run.sh "$(PY) scripts/run_phase_8_report_tables.py"
 
 # ── Full pipeline ──────────────────────────────────────────────────────────────
 

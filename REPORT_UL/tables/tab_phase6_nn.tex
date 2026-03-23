@@ -1,0 +1,12 @@
+\begin{tabular}{lrrrrl}
+\toprule
+Variant & $d_{\mathrm{in}}$ & Mean F1 & Std & Min & Max \\
+\midrule
+Raw baseline (12d) & 12 & 0.3290 & 0.0094 & 0.3193 & 0.3530 \\
+\midrule
+KMeans one-hot (14d) & 14 & \textbf{0.3385} & 0.0072 & 0.3299 & 0.3525 \\
+KMeans distances (14d) & 14 & \textbf{0.3307} & 0.0090 & 0.3164 & 0.3462 \\
+GMM posterior (19d) & 19 & \textbf{0.3332} & 0.0101 & 0.3150 & 0.3455 \\
+\multicolumn{6}{l}{\footnotesize 10 seeds (42--51). Bold = beats raw baseline.} \\
+\bottomrule
+\end{tabular}

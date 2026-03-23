@@ -5,6 +5,31 @@ Captures explanations for recurring methodological questions raised during imple
 
 ---
 
+## Report Hypothesis
+
+### Q: What is the core hypothesis for the UL report, and where does it come from?
+
+**A: The hypothesis is grounded in EDA from the prior SL/OL reports and makes a prediction about how much PCA will help each dataset.**
+
+Going into these experiments, we already knew two important things from EDA:
+
+- **Wine** has severe class overlap. The silhouette score on its 8 quality classes was −0.074 — meaning adjacent quality ratings (e.g., 5 vs 6) are more mixed together than random noise. The features are 12 continuous physicochemical measurements with no redundant one-hot columns.
+- **Adult** has 96+ dimensions after one-hot encoding, with known collinear features (e.g., `education` and `education-num` encode the same information twice). The decision boundary is close to linear (only a 1.7% gap between logistic regression and random forest).
+
+From these two observations, before running a single clustering or NN experiment, we predicted:
+
+> *PCA will help Adult more than Wine. Adult has genuine redundancy that PCA can compress — stripping noise and tightening cluster structure. Wine is already compact at 12 features, and its class overlap is so severe that no linear projection can create separation that does not exist in the raw space. We therefore expect only modest clustering improvement from PCA on Wine. For the neural network experiments on Wine, compressing already-compact features will likely hurt performance by discarding discriminative variance. Cluster-derived features may partially compensate by encoding coarse structural groupings that linear methods cannot capture — but whether they actually recover or exceed the baseline is an open question.*
+
+**How the results line up:**
+
+- Phase 4: Adult KMeans gained +23% silhouette under PCA vs Wine's +4.7% — confirms the direction.
+- Phase 5: Every DR method hurt Wine NN performance, with ICA (4d) hurting the most — confirms the bottleneck prediction.
+- Phase 6: All three cluster augmentation variants beat the raw baseline — the "open question" resolved in favor of the hypothesis, but this was not guaranteed going in.
+
+The GMM result on Wine under ICA (+180% silhouette) is a genuine surprise worth discussing in the report: ICA's non-Gaussianity search revealed latent mixture structure that PCA missed, showing that the type of linear projection matters, not just whether you project.
+
+---
+
 ## Phase 2 — Raw Clustering
 
 ### Q: The phase 2 script finished very quickly. Is the speed correct?
@@ -269,3 +294,7 @@ The "output" of Phase 7 is visual insight read from the scatter plots — do qua
     *   *Why KMeans helped Wine (Phase 6):* Passing the KMeans cluster as a feature explicitly told the Neural Network "this is Island A" or "this is Island B", solving the macro-structure problem automatically and letting the network focus 100% on untangling the messy quality labels inside.
 *   **Adult (The Continuous Manifold):** The Adult t-SNE plot forms a single, massive, continuous blob rather than distinct islands. When colored by KMeans (K=8), the boundaries are arbitrary and messy. 
     *   *Why DR helped Adult (Phase 4):* This visually explains the poor Euclidean clustering metrics from Phase 2. High-dimensional, sparse categorical data does not form dense, cleanly separated spheres in raw feature space. This is exactly why dimensionality reduction (PCA/RP) in Phase 4 *improved* the KMeans clustering: it stripped away the 104D sparse noise, allowing KMeans to finally measure meaningful Euclidean distances across the continuous blob.
+
+---
+
+

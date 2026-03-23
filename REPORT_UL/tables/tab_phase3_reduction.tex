@@ -1,0 +1,12 @@
+\begin{tabular}{llrl}
+\toprule
+Dataset & Method & $d$ & Selection criterion \\
+\midrule
+Wine & PCA & 8 & Cumulative variance $\geq 90\%$ \\
+Wine & ICA & 4 & Above-median $|$kurtosis$|$ (floor 2) \\
+Wine & RP & 8 & = PCA target dim \\
+Adult & PCA & 22 & Cumulative variance $\geq 90\%$ \\
+Adult & ICA & 11 & Above-median $|$kurtosis$|$ (floor 2) \\
+Adult & RP & 22 & = PCA target dim \\
+\bottomrule
+\end{tabular}
