@@ -13,3 +13,8 @@ __pycache__/
 .ruff_cache/
 
 artifacts
+
+**/*.aux
+**/*.log
+**/*.out
+**/*.pdf
