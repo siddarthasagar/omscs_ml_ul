@@ -20,6 +20,7 @@ import numpy as np
 import pandas as pd
 from sklearn.cluster import KMeans
 from sklearn.metrics import (
+    adjusted_rand_score,
     calinski_harabasz_score,
     davies_bouldin_score,
     silhouette_score,
@@ -137,6 +138,18 @@ def run_dataset(name: str, X_train: np.ndarray, log) -> list[dict]:
     dr_methods = ["PCA", "ICA", "RP"]
     results = []
 
+    # Raw cluster assignments at frozen K (for ARI comparison)
+    raw_km = KMeans(
+        n_clusters=f["kmeans_k"], random_state=SEED_EXPLORE, n_init="auto"
+    ).fit_predict(X_train)
+    raw_gmm = GaussianMixture(
+        n_components=f["gmm_n"],
+        random_state=SEED_EXPLORE,
+        covariance_type="diag",
+        reg_covar=1e-3,
+    ).fit_predict(X_train.astype(np.float64))
+    log.info("  Raw baseline: KMeans K=%d  GMM K=%d", f["kmeans_k"], f["gmm_n"])
+
     for dr in tqdm(dr_methods, desc=f"  {name.upper()} DR", leave=False):
         n = f[dr.lower()]
         log.info("  %s | %s | n_components=%d", name.upper(), dr, n)
@@ -147,11 +160,17 @@ def run_dataset(name: str, X_train: np.ndarray, log) -> list[dict]:
         k = f["kmeans_k"]
         log.info("    KMeans k=%d ...", k)
         km_metrics = cluster_kmeans(X_r, k, SEED_EXPLORE)
+        red_km = KMeans(
+            n_clusters=k, random_state=SEED_EXPLORE, n_init="auto"
+        ).fit_predict(X_r)
+        ari_km = adjusted_rand_score(raw_km, red_km)
+        km_metrics["raw_vs_reduced_ari"] = round(ari_km, 4)
         log.info(
-            "    KMeans silhouette=%.4f  CH=%.1f  DB=%.4f",
+            "    KMeans silhouette=%.4f  CH=%.1f  DB=%.4f  ARI_raw_vs_reduced=%.4f",
             km_metrics["silhouette"],
             km_metrics["calinski_harabasz"],
             km_metrics["davies_bouldin"],
+            ari_km,
         )
         results.append(
             {
@@ -168,11 +187,20 @@ def run_dataset(name: str, X_train: np.ndarray, log) -> list[dict]:
         gmm_n = f["gmm_n"]
         log.info("    GMM n=%d ...", gmm_n)
         gmm_metrics = cluster_gmm(X_r, gmm_n, SEED_EXPLORE)
+        red_gmm = GaussianMixture(
+            n_components=gmm_n,
+            random_state=SEED_EXPLORE,
+            covariance_type="diag",
+            reg_covar=1e-3,
+        ).fit_predict(X_r.astype(np.float64))
+        ari_gmm = adjusted_rand_score(raw_gmm, red_gmm)
+        gmm_metrics["raw_vs_reduced_ari"] = round(ari_gmm, 4)
         log.info(
-            "    GMM   silhouette=%.4f  BIC=%.2f  AIC=%.2f",
+            "    GMM   silhouette=%.4f  BIC=%.2f  AIC=%.2f  ARI_raw_vs_reduced=%.4f",
             gmm_metrics["silhouette"],
             gmm_metrics["bic"] or 0,
             gmm_metrics["aic"] or 0,
+            ari_gmm,
         )
         results.append(
             {

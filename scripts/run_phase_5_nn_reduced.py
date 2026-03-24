@@ -14,6 +14,7 @@ Produces:
 """
 
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -89,8 +90,13 @@ def main() -> None:
         var_dir.mkdir(exist_ok=True)
 
         log.info("── %s (input_dim=%d) ──", variant.upper(), Xtr.shape[1])
+        variant_times: list[float] = []
         for seed in tqdm(SEEDS_REPORT, desc=f"  {variant}", leave=False):
+            t0 = time.perf_counter()
             hist = train_wine_nn(Xtr, y_train, Xv, y_val, seed=seed)
+            elapsed = time.perf_counter() - t0
+            variant_times.append(elapsed)
+
             hist.insert(0, "seed", seed)
             hist.insert(0, "variant", variant)
 
@@ -100,16 +106,35 @@ def main() -> None:
 
             final_f1 = float(hist["val_f1"].iloc[-1])
             best_f1 = float(hist["val_f1"].max())
-            log.info("    seed=%d  final_f1=%.4f  best_f1=%.4f", seed, final_f1, best_f1)
+            log.info(
+                "    seed=%d  final_f1=%.4f  best_f1=%.4f  time=%.2fs",
+                seed,
+                final_f1,
+                best_f1,
+                elapsed,
+            )
 
-            comparison_rows.append({
-                "variant": variant,
-                "seed": seed,
-                "input_dim": Xtr.shape[1],
-                "val_f1_final": final_f1,
-                "val_f1_best": best_f1,
-            })
+            comparison_rows.append(
+                {
+                    "variant": variant,
+                    "seed": seed,
+                    "input_dim": Xtr.shape[1],
+                    "val_f1_final": final_f1,
+                    "val_f1_best": best_f1,
+                    "train_time_s": round(elapsed, 3),
+                }
+            )
             all_histories.append(hist)
+
+        from src.config import NN_MAX_EPOCHS
+
+        mean_t = float(np.mean(variant_times))
+        log.info(
+            "  %s timing: mean=%.2fs  per_epoch=%.4fs  (10 seeds)",
+            variant.upper(),
+            mean_t,
+            mean_t / NN_MAX_EPOCHS,
+        )
 
     # ── Summary table ──────────────────────────────────────────────────────────
     comparison_df = pd.DataFrame(comparison_rows)
@@ -137,9 +162,22 @@ def main() -> None:
 
     # ── Gate 3 check ───────────────────────────────────────────────────────────
     log.info("── Gate 3: verifying only input_dim differs across variants ──")
-    from src.config import NN_BETAS, NN_LR, NN_MAX_EPOCHS, NN_TRAIN_BATCH_SIZE, NN_WEIGHT_DECAY
-    log.info("  lr=%s  betas=%s  wd=%s  batch=%s  epochs=%s",
-             NN_LR, NN_BETAS, NN_WEIGHT_DECAY, NN_TRAIN_BATCH_SIZE, NN_MAX_EPOCHS)
+    from src.config import (
+        NN_BETAS,
+        NN_LR,
+        NN_MAX_EPOCHS,
+        NN_TRAIN_BATCH_SIZE,
+        NN_WEIGHT_DECAY,
+    )
+
+    log.info(
+        "  lr=%s  betas=%s  wd=%s  batch=%s  epochs=%s",
+        NN_LR,
+        NN_BETAS,
+        NN_WEIGHT_DECAY,
+        NN_TRAIN_BATCH_SIZE,
+        NN_MAX_EPOCHS,
+    )
     input_dims = comparison_df.groupby("variant")["input_dim"].first().to_dict()
     log.info("  input_dims: %s", input_dims)
 
@@ -147,8 +185,14 @@ def main() -> None:
     log.info("── Phase 5 complete. Val Macro-F1 summary (mean ± std over 10 seeds):")
     for v in variants:
         vdf = comparison_df[comparison_df["variant"] == v]["val_f1_final"]
-        log.info("  %s  mean=%.4f  std=%.4f  min=%.4f  max=%.4f",
-                 v.upper(), vdf.mean(), vdf.std(), vdf.min(), vdf.max())
+        log.info(
+            "  %s  mean=%.4f  std=%.4f  min=%.4f  max=%.4f",
+            v.upper(),
+            vdf.mean(),
+            vdf.std(),
+            vdf.min(),
+            vdf.max(),
+        )
 
 
 if __name__ == "__main__":

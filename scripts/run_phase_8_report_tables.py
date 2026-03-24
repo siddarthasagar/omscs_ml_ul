@@ -27,12 +27,13 @@ OUT_DIR = ARTIFACTS_DIR / "tables"
 
 FROZEN_K = {"wine": {"kmeans": 2, "gmm": 7}, "adult": {"kmeans": 8, "gmm": 7}}
 FROZEN_N = {
-    "wine":  {"PCA": 8,  "ICA": 4,  "RP": 8},
+    "wine": {"PCA": 8, "ICA": 4, "RP": 8},
     "adult": {"PCA": 22, "ICA": 11, "RP": 22},
 }
 
 
 # ── LaTeX helpers ──────────────────────────────────────────────────────────────
+
 
 def _bf(val: str) -> str:
     return f"\\textbf{{{val}}}"
@@ -59,12 +60,11 @@ def _save(tex: str, name: str, log) -> Path:
 
 # ── Table 1: Phase 2 raw clustering ───────────────────────────────────────────
 
+
 def emit_phase2_table(log) -> Path:
     rows = []
     # Header
-    rows.append(
-        "Dataset & Algorithm & $K$ & Silhouette & CH / BIC & DB / AIC \\\\"
-    )
+    rows.append("Dataset & Algorithm & $K$ & Silhouette & CH / BIC & DB / AIC \\\\")
     rows.append("\\midrule")
 
     for dataset in ("wine", "adult"):
@@ -104,17 +104,18 @@ def emit_phase2_table(log) -> Path:
 
 # ── Table 2: Phase 3 frozen n_components ──────────────────────────────────────
 
+
 def emit_phase3_table(log) -> Path:
     CRITERIA = {
-        "wine":  {
+        "wine": {
             "PCA": "Cumulative variance $\\geq 90\\%$",
             "ICA": "Above-median $|$kurtosis$|$ (floor 2)",
-            "RP":  "= PCA target dim",
+            "RP": "= PCA target dim",
         },
         "adult": {
             "PCA": "Cumulative variance $\\geq 90\\%$",
             "ICA": "Above-median $|$kurtosis$|$ (floor 2)",
-            "RP":  "= PCA target dim",
+            "RP": "= PCA target dim",
         },
     }
 
@@ -130,6 +131,7 @@ def emit_phase3_table(log) -> Path:
 
 
 # ── Table 3: Phase 4 silhouette heatmap ───────────────────────────────────────
+
 
 def emit_phase4_table(log) -> Path:
     p4 = pd.read_csv(METRICS / "phase4_clustering" / "summary_table.csv")
@@ -149,8 +151,8 @@ def emit_phase4_table(log) -> Path:
         )
 
     combos = [
-        ("wine",  "KMeans"),
-        ("wine",  "GMM"),
+        ("wine", "KMeans"),
+        ("wine", "GMM"),
         ("adult", "KMeans"),
         ("adult", "GMM"),
     ]
@@ -163,9 +165,15 @@ def emit_phase4_table(log) -> Path:
     for ds, cl in combos:
         vals: dict[str, float] = {"Raw": raw_sil[(ds, cl)]}
         for dr in dr_methods:
-            mask = (p4["dataset"] == ds) & (p4["clusterer"] == cl) & (p4["dr_method"] == dr)
+            mask = (
+                (p4["dataset"] == ds)
+                & (p4["clusterer"] == cl)
+                & (p4["dr_method"] == dr)
+            )
             row = p4[mask]
-            vals[dr] = float(row["silhouette"].iloc[0]) if not row.empty else float("nan")
+            vals[dr] = (
+                float(row["silhouette"].iloc[0]) if not row.empty else float("nan")
+            )
 
         best_key = max(vals, key=lambda k: vals[k])
         cells = []
@@ -184,6 +192,7 @@ def emit_phase4_table(log) -> Path:
 
 
 # ── Table 4: Phase 5 NN on DR-reduced inputs ──────────────────────────────────
+
 
 def emit_phase5_table(log) -> Path:
     df = pd.read_csv(METRICS / "phase5_nn_reduced" / "comparison_table.csv")
@@ -224,18 +233,19 @@ def emit_phase5_table(log) -> Path:
 
 # ── Table 5: Phase 6 NN with cluster features ─────────────────────────────────
 
+
 def emit_phase6_table(log) -> Path:
     p6 = pd.read_csv(METRICS / "phase6_nn_cluster" / "comparison_table.csv")
     p5 = pd.read_csv(METRICS / "phase5_nn_reduced" / "comparison_table.csv")
 
     raw_mean = float(p5[p5["variant"] == "raw"]["val_f1_final"].mean())
-    raw_dim  = int(p5[p5["variant"] == "raw"]["input_dim"].iloc[0])
+    raw_dim = int(p5[p5["variant"] == "raw"]["input_dim"].iloc[0])
 
-    order  = ["raw_baseline", "kmeans_onehot", "kmeans_dist", "gmm_posterior"]
+    order = ["raw_baseline", "kmeans_onehot", "kmeans_dist", "gmm_posterior"]
     labels = {
-        "raw_baseline":  "Raw baseline (12d)",
+        "raw_baseline": "Raw baseline (12d)",
         "kmeans_onehot": "KMeans one-hot (14d)",
-        "kmeans_dist":   "KMeans distances (14d)",
+        "kmeans_dist": "KMeans distances (14d)",
         "gmm_posterior": "GMM posterior (19d)",
     }
 
@@ -264,7 +274,9 @@ def emit_phase6_table(log) -> Path:
             )
             rows.append("\\midrule")
         else:
-            s = p6[p6["variant"] == v]["val_f1_final"].agg(["mean", "std", "min", "max"])
+            s = p6[p6["variant"] == v]["val_f1_final"].agg(
+                ["mean", "std", "min", "max"]
+            )
             dim = int(p6[p6["variant"] == v]["input_dim"].iloc[0])
             mean_str = f"{s['mean']:.4f}"
             beats = all_means[v] > raw_mean
@@ -285,6 +297,7 @@ def emit_phase6_table(log) -> Path:
 
 
 # ── Main ───────────────────────────────────────────────────────────────────────
+
 
 def main() -> None:
     run_id = "phase8"

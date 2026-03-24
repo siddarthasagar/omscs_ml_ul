@@ -27,7 +27,11 @@ from tqdm import tqdm
 from src.config import ARTIFACTS_DIR, SEED_EXPLORE, SEEDS_REPORT
 from src.data.wine import load_wine
 from src.supervised.training import train_wine_nn
-from src.unsupervised.clustering import make_gmm_posterior, make_kmeans_dist, make_kmeans_onehot
+from src.unsupervised.clustering import (
+    make_gmm_posterior,
+    make_kmeans_dist,
+    make_kmeans_onehot,
+)
 from src.utils.logger import configure_logger
 from src.utils.plotting import plot_f1_comparison
 
@@ -49,8 +53,10 @@ def build_augmented_splits(
     so the augmentation is stable across NN seeds.
     """
     return {
-        "kmeans_onehot": make_kmeans_onehot(X_train, X_val, k=KMEANS_K, seed=SEED_EXPLORE),
-        "kmeans_dist":   make_kmeans_dist(X_train, X_val, k=KMEANS_K, seed=SEED_EXPLORE),
+        "kmeans_onehot": make_kmeans_onehot(
+            X_train, X_val, k=KMEANS_K, seed=SEED_EXPLORE
+        ),
+        "kmeans_dist": make_kmeans_dist(X_train, X_val, k=KMEANS_K, seed=SEED_EXPLORE),
         "gmm_posterior": make_gmm_posterior(X_train, X_val, n=GMM_N, seed=SEED_EXPLORE),
     }
 
@@ -101,15 +107,19 @@ def main() -> None:
 
             final_f1 = float(hist["val_f1"].iloc[-1])
             best_f1 = float(hist["val_f1"].max())
-            log.info("    seed=%d  final_f1=%.4f  best_f1=%.4f", seed, final_f1, best_f1)
+            log.info(
+                "    seed=%d  final_f1=%.4f  best_f1=%.4f", seed, final_f1, best_f1
+            )
 
-            comparison_rows.append({
-                "variant": variant,
-                "seed": seed,
-                "input_dim": Xtr.shape[1],
-                "val_f1_final": final_f1,
-                "val_f1_best": best_f1,
-            })
+            comparison_rows.append(
+                {
+                    "variant": variant,
+                    "seed": seed,
+                    "input_dim": Xtr.shape[1],
+                    "val_f1_final": final_f1,
+                    "val_f1_best": best_f1,
+                }
+            )
             all_histories.append(hist)
 
     comparison_df = pd.DataFrame(comparison_rows)
@@ -121,7 +131,9 @@ def main() -> None:
     # ── Boxplot — overlay Phase 5 raw baseline ─────────────────────────────────
     raw_median = load_phase5_raw_median()
     if raw_median is None:
-        log.warning("Phase 5 comparison_table.csv not found — boxplot will have no baseline")
+        log.warning(
+            "Phase 5 comparison_table.csv not found — boxplot will have no baseline"
+        )
 
     f1_plot_df = comparison_df.rename(columns={"val_f1_final": "val_f1"})
     fig_path = plot_f1_comparison(
@@ -130,7 +142,9 @@ def main() -> None:
         title="Phase 6 — Wine NN Macro-F1: Cluster-Augmented Features (10 seeds)",
         out_name="phase6_f1_boxplot.png",
         baseline_val=raw_median,
-        baseline_label=f"Phase 5 Raw baseline = {raw_median:.3f}" if raw_median else None,
+        baseline_label=f"Phase 5 Raw baseline = {raw_median:.3f}"
+        if raw_median
+        else None,
     )
     log.info("F1 boxplot → %s", fig_path)
 
@@ -138,8 +152,14 @@ def main() -> None:
     log.info("── Phase 6 complete. Val Macro-F1 summary (mean ± std over 10 seeds):")
     for v in variants:
         vdf = comparison_df[comparison_df["variant"] == v]["val_f1_final"]
-        log.info("  %s  mean=%.4f  std=%.4f  min=%.4f  max=%.4f",
-                 v, vdf.mean(), vdf.std(), vdf.min(), vdf.max())
+        log.info(
+            "  %s  mean=%.4f  std=%.4f  min=%.4f  max=%.4f",
+            v,
+            vdf.mean(),
+            vdf.std(),
+            vdf.min(),
+            vdf.max(),
+        )
 
     if raw_median is not None:
         log.info("  Phase 5 raw baseline median: %.4f", raw_median)

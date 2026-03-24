@@ -3,6 +3,9 @@ Phase 3: Step 2 — Dimensionality reduction on raw data.
 
 Runs PCA (full spectrum), ICA, and Random Projection on X_train for both
 Wine and Adult. Saves 6 CSVs + 6 PNGs to phase3_reduction artifacts.
+
+Also generates PCA/ICA component loadings heatmaps saved to
+artifacts/figures/analysis/ for use in the report.
 """
 
 import sys
@@ -12,23 +15,61 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import numpy as np
 import pandas as pd
+from sklearn.preprocessing import OneHotEncoder
 from tqdm import tqdm
 
-from src.config import ARTIFACTS_DIR, SEED_EXPLORE, SEEDS_REPORT
+from src.config import ARTIFACTS_DIR, DATA_DIR, SEED_EXPLORE, SEEDS_REPORT
 from src.data.adult import load_adult
 from src.data.wine import load_wine
 from src.unsupervised.reduction import fit_ica, fit_pca, fit_rp, rp_reconstruction_error
 from src.utils.logger import configure_logger
-from src.utils.plotting import plot_ica_kurtosis, plot_pca_variance, plot_rp_stability
+from src.utils.plotting import (
+    plot_ica_kurtosis,
+    plot_ica_loadings,
+    plot_pca_loadings,
+    plot_pca_variance,
+    plot_rp_stability,
+)
 
 OUTPUT_DIR = ARTIFACTS_DIR / "metrics" / "phase3_reduction"
 FIGURES_DIR = ARTIFACTS_DIR / "figures" / "phase3_reduction"
+ANALYSIS_FIGURES_DIR = ARTIFACTS_DIR / "figures" / "analysis"
 
 # RP: use PCA n_components as the target dim; sweep these seeds for stability
 RP_SEEDS = SEEDS_REPORT  # 42–51
 
+WINE_FEATURE_NAMES = [
+    "fixed acidity",
+    "volatile acidity",
+    "citric acid",
+    "residual sugar",
+    "chlorides",
+    "free SO₂",
+    "total SO₂",
+    "density",
+    "pH",
+    "sulphates",
+    "alcohol",
+    "type",
+]
 
-def run_dataset(name: str, X_train: np.ndarray, log) -> dict:
+
+def get_adult_feature_names() -> list[str]:
+    """Reconstruct Adult feature names (numeric + OHE categorical) from raw CSV."""
+    frame = pd.read_csv(DATA_DIR / "adult.csv").drop(columns=["class"])
+    cat_cols = list(frame.select_dtypes(include=["object", "string"]).columns)
+    num_cols = [c for c in frame.columns if c not in cat_cols]
+    ohe = OneHotEncoder(handle_unknown="ignore", sparse_output=False)
+    ohe.fit(frame[cat_cols])
+    return num_cols + list(ohe.get_feature_names_out(cat_cols))
+
+
+def run_dataset(
+    name: str,
+    X_train: np.ndarray,
+    feature_names: list[str],
+    log,
+) -> dict:
     """Run PCA, ICA, RP on one dataset. Returns dict of frozen n_components."""
     n_features = X_train.shape[1]
     log.info("── %s | shape=%s ──", name.upper(), X_train.shape)
@@ -58,6 +99,20 @@ def run_dataset(name: str, X_train: np.ndarray, log) -> dict:
         cumvar[n_pca - 1],
     )
 
+    # PCA loadings figure (top 3 PCs × features)
+    out = ANALYSIS_FIGURES_DIR / f"{name}_pca_loadings.png"
+    plot_pca_loadings(
+        pca.components_,
+        feature_names,
+        n_show=3,
+        dataset_name=name.title(),
+        out_path=out,
+    )
+    log.info("  PCA Loadings → %s", out)
+    for i in range(3):
+        top = np.argsort(np.abs(pca.components_[i]))[::-1][:3]
+        log.info("    PC%d top features: %s", i + 1, [feature_names[j] for j in top])
+
     # ── ICA ───────────────────────────────────────────────────────────────────
     log.info("  ICA: fitting n_components=%d ...", n_pca)
     ica, kurtosis_array = fit_ica(X_train, n_components=n_pca, seed=SEED_EXPLORE)
@@ -78,6 +133,20 @@ def run_dataset(name: str, X_train: np.ndarray, log) -> dict:
     n_ica = int(np.sum(abs_kurt >= np.median(abs_kurt)))
     n_ica = max(n_ica, 2)  # floor at 2
     log.info("  ICA frozen n_components=%d (above-median kurtosis threshold)", n_ica)
+
+    # ICA loadings figure (refit with n_ica retained components)
+    if len(feature_names) <= 30:
+        ica_final, _ = fit_ica(X_train, n_components=n_ica, seed=SEED_EXPLORE)
+        out = ANALYSIS_FIGURES_DIR / f"{name}_ica_loadings.png"
+        plot_ica_loadings(
+            ica_final.mixing_, feature_names, dataset_name=name.title(), out_path=out
+        )
+        log.info("  ICA Loadings → %s", out)
+        for i in range(n_ica):
+            top = np.argsort(np.abs(ica_final.mixing_[:, i]))[::-1][:3]
+            log.info(
+                "    IC%d top features: %s", i + 1, [feature_names[j] for j in top]
+            )
 
     # ── RP stability sweep ────────────────────────────────────────────────────
     log.info(
@@ -116,15 +185,20 @@ def main() -> None:
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     FIGURES_DIR.mkdir(parents=True, exist_ok=True)
+    ANALYSIS_FIGURES_DIR.mkdir(parents=True, exist_ok=True)
+
+    log.info("Reconstructing Adult feature names ...")
+    adult_feature_names = get_adult_feature_names()
+    log.info("Adult feature count: %d", len(adult_feature_names))
 
     datasets = {
-        "wine": load_wine(seed=SEED_EXPLORE)[0],
-        "adult": load_adult(seed=SEED_EXPLORE)[0],
+        "wine": (load_wine(seed=SEED_EXPLORE)[0], WINE_FEATURE_NAMES),
+        "adult": (load_adult(seed=SEED_EXPLORE)[0], adult_feature_names),
     }
 
     frozen = {}
-    for name, X_train in tqdm(datasets.items(), desc="Datasets"):
-        frozen[name] = run_dataset(name, X_train, log)
+    for name, (X_train, feature_names) in tqdm(datasets.items(), desc="Datasets"):
+        frozen[name] = run_dataset(name, X_train, feature_names, log)
 
     log.info("── Phase 3 complete. Frozen n_components:")
     for name, vals in frozen.items():
@@ -136,6 +210,8 @@ def main() -> None:
     for p in sorted(OUTPUT_DIR.glob("*.csv")):
         log.info("   %s", p)
     for p in sorted(FIGURES_DIR.glob("*.png")):
+        log.info("   %s", p)
+    for p in sorted(ANALYSIS_FIGURES_DIR.glob("*loadings*.png")):
         log.info("   %s", p)
 
 

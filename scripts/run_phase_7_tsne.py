@@ -20,7 +20,6 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-import numpy as np
 from sklearn.cluster import KMeans
 
 from src.config import ARTIFACTS_DIR, SEED_EXPLORE
@@ -44,7 +43,7 @@ def main() -> None:
     FIGURES_DIR.mkdir(parents=True, exist_ok=True)
 
     datasets = {
-        "wine":  load_wine(seed=SEED_EXPLORE),
+        "wine": load_wine(seed=SEED_EXPLORE),
         "adult": load_adult(seed=SEED_EXPLORE),
     }
 
@@ -84,7 +83,9 @@ def main() -> None:
         log.info("  Cluster plot → %s", out_path)
 
     log.info("Phase 7 complete — 4 PNGs in %s", FIGURES_DIR)
-    log.info("Reminder: t-SNE is qualitative only. Do not cite inter-cluster distances.")
+    log.info(
+        "Reminder: t-SNE is qualitative only. Do not cite inter-cluster distances."
+    )
 
 
 if __name__ == "__main__":

@@ -1,4 +1,5 @@
 """Wine NN training loop — single seed, returns per-epoch history."""
+
 from __future__ import annotations
 
 import numpy as np
@@ -95,7 +96,9 @@ def train_wine_nn(
         with torch.no_grad():
             for X_batch, y_batch in val_loader:
                 logits = model(X_batch.to(device))
-                val_loss_total += criterion(logits, y_batch.to(device)).item() * len(y_batch)
+                val_loss_total += criterion(logits, y_batch.to(device)).item() * len(
+                    y_batch
+                )
                 val_n += len(y_batch)
                 all_preds.append(logits.argmax(dim=1).cpu().numpy())
                 all_targets.append(y_batch.numpy())
@@ -107,6 +110,13 @@ def train_wine_nn(
             zero_division=0,
         )
 
-        history.append({"epoch": epoch, "train_loss": train_loss, "val_loss": val_loss, "val_f1": val_f1})
+        history.append(
+            {
+                "epoch": epoch,
+                "train_loss": train_loss,
+                "val_loss": val_loss,
+                "val_f1": val_f1,
+            }
+        )
 
     return pd.DataFrame(history)

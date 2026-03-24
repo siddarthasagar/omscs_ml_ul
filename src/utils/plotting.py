@@ -304,9 +304,18 @@ def plot_f1_comparison(
         baseline_label: Legend label for the baseline line. Defaults to "Baseline = {val}".
     Saves to out_dir/{out_name}.
     """
-    variants = list(dict.fromkeys(df["variant"]))  # preserve insertion order, deduplicate
+    variants = list(
+        dict.fromkeys(df["variant"])
+    )  # preserve insertion order, deduplicate
     data = [df[df["variant"] == v]["val_f1"].values for v in variants]
-    palette = ["tab:gray", "tab:blue", "tab:orange", "tab:green", "tab:red", "tab:purple"]
+    palette = [
+        "tab:gray",
+        "tab:blue",
+        "tab:orange",
+        "tab:green",
+        "tab:red",
+        "tab:purple",
+    ]
 
     fig, ax = plt.subplots(figsize=(8, 5))
     bp = ax.boxplot(data, labels=[v.upper() for v in variants], patch_artist=True)
@@ -316,7 +325,9 @@ def plot_f1_comparison(
 
     if baseline_val is not None:
         label = baseline_label or f"Baseline = {baseline_val:.3f}"
-        ax.axhline(baseline_val, color="black", linestyle="--", linewidth=1.2, label=label)
+        ax.axhline(
+            baseline_val, color="black", linestyle="--", linewidth=1.2, label=label
+        )
 
     ax.set(title=title, xlabel="Input Variant", ylabel="Val Macro-F1")
     ax.legend(fontsize=9)
@@ -335,16 +346,23 @@ def plot_learning_curves(history_df: pd.DataFrame, out_dir: Path) -> Path:
     Saves to out_dir/phase5_learning_curves.png.
     """
     variants = ["raw", "pca", "ica", "rp"]
-    colors = {"raw": "tab:gray", "pca": "tab:blue", "ica": "tab:orange", "rp": "tab:green"}
+    colors = {
+        "raw": "tab:gray",
+        "pca": "tab:blue",
+        "ica": "tab:orange",
+        "rp": "tab:green",
+    }
     n_seeds = history_df["seed"].nunique()
 
     fig, axes = plt.subplots(1, 3, figsize=(14, 4))
-    fig.suptitle(f"Phase 5 — Wine NN Learning Curves ({n_seeds} seeds, mean ± std)", fontsize=12)
+    fig.suptitle(
+        f"Phase 5 — Wine NN Learning Curves ({n_seeds} seeds, mean ± std)", fontsize=12
+    )
 
     panels = [
-        (axes[0], "train_loss", "Train Loss",  "Loss"),
-        (axes[1], "val_loss",   "Val Loss",    "Loss"),
-        (axes[2], "val_f1",     "Val Macro-F1","F1"),
+        (axes[0], "train_loss", "Train Loss", "Loss"),
+        (axes[1], "val_loss", "Val Loss", "Loss"),
+        (axes[2], "val_f1", "Val Macro-F1", "F1"),
     ]
 
     for ax, metric, title, ylabel in panels:
@@ -358,8 +376,13 @@ def plot_learning_curves(history_df: pd.DataFrame, out_dir: Path) -> Path:
             epochs = agg["epoch"]
             color = colors[v]
             ax.plot(epochs, agg["mean"], color=color, label=v.upper())
-            ax.fill_between(epochs, agg["mean"] - agg["std"], agg["mean"] + agg["std"],
-                            alpha=0.15, color=color)
+            ax.fill_between(
+                epochs,
+                agg["mean"] - agg["std"],
+                agg["mean"] + agg["std"],
+                alpha=0.15,
+                color=color,
+            )
         ax.set(title=title, xlabel="Epoch", ylabel=ylabel)
         ax.legend(fontsize=8)
 
@@ -407,6 +430,102 @@ def plot_tsne(
     )
     fig.tight_layout()
     fig.savefig(out_path, dpi=150)
+    plt.close(fig)
+    return out_path
+
+
+def plot_pca_loadings(
+    components: np.ndarray,
+    feature_names: list[str],
+    n_show: int,
+    dataset_name: str,
+    out_path: Path,
+) -> Path:
+    """
+    Heatmap (≤30 features) or per-PC bar chart (>30 features) of PCA loadings.
+    components: (n_components, n_features) array from PCA.components_.
+    n_show: number of PCs to display (typically 3).
+    Saves to out_path.
+    """
+    n_features = len(feature_names)
+    if n_features <= 30:
+        mat = components[:n_show, :]
+        fig, ax = plt.subplots(figsize=(max(6, n_features * 0.55), 2.2))
+        im = ax.imshow(
+            mat,
+            cmap="RdBu_r",
+            aspect="auto",
+            vmin=-np.abs(mat).max(),
+            vmax=np.abs(mat).max(),
+        )
+        ax.set_xticks(range(n_features))
+        ax.set_xticklabels(feature_names, rotation=45, ha="right", fontsize=8)
+        ax.set_yticks(range(n_show))
+        ax.set_yticklabels([f"PC{i + 1}" for i in range(n_show)], fontsize=9)
+        fig.colorbar(im, ax=ax, shrink=0.8, label="Loading weight")
+        ax.set_title(f"{dataset_name} — PCA Loadings (PC1–PC{n_show})", fontsize=10)
+        fig.tight_layout()
+        fig.savefig(out_path, dpi=150, bbox_inches="tight")
+        plt.close(fig)
+    else:
+        mat = components[:n_show, :]
+        fig, axes = plt.subplots(n_show, 1, figsize=(10, 1.5 * n_show + 1))
+        if n_show == 1:
+            axes = [axes]
+        for i, ax in enumerate(axes):
+            vals = mat[i]
+            top_idx = np.argsort(np.abs(vals))[::-1][:8]
+            top_names = [feature_names[j] for j in top_idx]
+            top_vals = vals[top_idx]
+            colors = ["tab:red" if v < 0 else "tab:blue" for v in top_vals]
+            ax.barh(range(len(top_names)), top_vals, color=colors)
+            ax.set_yticks(range(len(top_names)))
+            ax.set_yticklabels(top_names, fontsize=8)
+            ax.axvline(0, color="black", linewidth=0.5)
+            ax.set_title(f"PC{i + 1} — top 8 features by |loading|", fontsize=9)
+            ax.set_xlabel("Loading weight", fontsize=8)
+        fig.suptitle(f"{dataset_name} — PCA Component Loadings", fontsize=10, y=1.01)
+        fig.tight_layout()
+        fig.savefig(out_path, dpi=150, bbox_inches="tight")
+        plt.close(fig)
+    return out_path
+
+
+def plot_ica_loadings(
+    mixing: np.ndarray,
+    feature_names: list[str],
+    dataset_name: str,
+    out_path: Path,
+) -> Path:
+    """
+    Heatmap of ICA mixing matrix for datasets with ≤30 features.
+    mixing: (n_features, n_components) — the ica.mixing_ attribute.
+    Skips (returns out_path without writing) for high-dimensional datasets.
+    Saves to out_path.
+    """
+    n_features = len(feature_names)
+    if n_features > 30:
+        return out_path
+    n_comps = mixing.shape[1]
+    mat = mixing.T  # (n_comps, n_features)
+    fig, ax = plt.subplots(figsize=(max(6, n_features * 0.55), max(2.2, n_comps * 0.5)))
+    im = ax.imshow(
+        mat,
+        cmap="RdBu_r",
+        aspect="auto",
+        vmin=-np.abs(mat).max(),
+        vmax=np.abs(mat).max(),
+    )
+    ax.set_xticks(range(n_features))
+    ax.set_xticklabels(feature_names, rotation=45, ha="right", fontsize=8)
+    ax.set_yticks(range(n_comps))
+    ax.set_yticklabels([f"IC{i + 1}" for i in range(n_comps)], fontsize=9)
+    fig.colorbar(im, ax=ax, shrink=0.8, label="Mixing weight")
+    ax.set_title(
+        f"{dataset_name} — ICA Mixing Matrix (retained components)", fontsize=10
+    )
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
     return out_path
 
