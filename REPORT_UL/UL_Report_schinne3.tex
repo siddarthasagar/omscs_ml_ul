@@ -434,7 +434,7 @@ additional denoising in Adult's space allows K-Means' Euclidean metric to find
 tighter, more separated clusters.
 
 The largest single result in the table is Wine GMM under ICA: silhouette
-improves from 0.040 to 0.225, a $+457\%$ gain that PCA achieves only partially
+improves from 0.040 to 0.225, a $+463\%$ gain that PCA achieves only partially
 (0.112, $+176\%$).  This divergence reflects algorithm geometry.  ICA
 maximizes statistical independence via non-Gaussianity, producing a latent space
 where mixture components are more separated than in the PCA subspace.  GMM's
@@ -669,12 +669,7 @@ For Wine GMM, reducing the component count from 7 toward 2--3 would align the
 generative model more closely with the macro-structure revealed by t-SNE,
 likely improving hard-assignment silhouette at the cost of BIC log-likelihood.
 
-\textbf{AI Use Statement.}  I used Claude Code (Anthropic) for code generation,
-debugging, and refactoring across all experimental phases, and to assist with
-LaTeX structure and grammar editing throughout the report.  I used GitHub
-Copilot for boilerplate code and debugging in the VS Code editor.  I reviewed,
-verified, and understand all assisted content.  All experimental analysis,
-interpretations, and conclusions are my own.
+\textbf{AI Use Statement.}  Once done with the preliminary draft, I used Claude Sonnet 4.6 to proofread and correct grammar, verify citation formatting, and make text concise where it was too verbose. I used GitHub Copilot to assist with figure alignment in LaTeX and to generate boilerplate code and bug fixes for the experiments and EDA code in the VS Code editor. I reviewed, verified, and understand all assisted content, and all analysis, interpretations, and conclusions are my own.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{thebibliography}{9}
