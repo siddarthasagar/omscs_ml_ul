@@ -33,6 +33,7 @@ def test_kmeans_output_schema():
     df = run_kmeans_sweep(X_SMALL, k_range=range(2, 5), seed=42)
     assert list(df.columns) == [
         "k",
+        "inertia",
         "silhouette",
         "calinski_harabasz",
         "davies_bouldin",

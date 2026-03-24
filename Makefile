@@ -77,7 +77,7 @@ phase8: ## Phase 8 — generate report tables from artifacts
 
 # ── Full pipeline ──────────────────────────────────────────────────────────────
 
-pipeline: gate1 gate2 phase2 phase3 phase4 phase5 phase6 phase8 ## Run full pipeline phase 2→8 (skips t-SNE)
+pipeline: gate1 gate2 phase2 phase3 phase4 phase5 phase6 phase7 phase8 ## Run full pipeline phase 2→8 (includes t-SNE)
 
 overnight: ## Run full pipeline in background tmux/screen session (safe to close terminal)
 	bash ml_run.sh --detach "make pipeline" ul_phases
