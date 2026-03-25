@@ -12,23 +12,41 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+import numpy as np
 import pandas as pd
 
 from src.config import ARTIFACTS_DIR
+
+# FROZEN_K is imported from phase 2 — it is the single source of truth (ADR-002).
+from scripts.run_phase_2_raw_cluster import FROZEN_K  # noqa: E402
 
 METRICS = ARTIFACTS_DIR / "metrics"
 META_DIR = ARTIFACTS_DIR / "metadata"
 META_DIR.mkdir(parents=True, exist_ok=True)
 
-# ── Frozen decisions (must match ADR-002 and Phase 3 design) ──────────────────
-FROZEN_K = {
-    "wine": {"kmeans": 2, "gmm": 7},
-    "adult": {"kmeans": 8, "gmm": 7},
-}
-FROZEN_N = {
-    "wine": {"pca": 8, "ica": 4, "rp": 8},
-    "adult": {"pca": 22, "ica": 11, "rp": 22},
-}
+
+def _derive_frozen_n() -> dict:
+    """Derive frozen n_components from phase 3 metric CSVs (no hardcoding)."""
+    p = METRICS / "phase3_reduction"
+    result = {}
+    for ds in ("wine", "adult"):
+        pca_df = pd.read_csv(p / f"{ds}_pca.csv")
+        ica_df = pd.read_csv(p / f"{ds}_ica.csv")
+        rp_df = pd.read_csv(p / f"{ds}_rp_stability.csv")
+
+        # PCA: first component where cumulative variance >= 90%
+        n_pca = int(np.searchsorted(pca_df["cumulative_variance"].values, 0.90) + 1)
+
+        # ICA: components with |kurtosis| >= median(|kurtosis|), floor at 2
+        abs_kurt = np.abs(ica_df["kurtosis"].values)
+        n_ica = int(np.sum(abs_kurt >= np.median(abs_kurt)))
+        n_ica = max(n_ica, 2)
+
+        # RP: same target dim as PCA (read from stability CSV to confirm)
+        n_rp = int(rp_df["n_components"].iloc[0])
+
+        result[ds] = {"pca": n_pca, "ica": n_ica, "rp": n_rp}
+    return result
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -91,6 +109,7 @@ def build_phase2() -> dict:
 # ─────────────────────────────────────────────────────────────────────────────
 def build_phase3() -> dict:
     p = METRICS / "phase3_reduction"
+    frozen_n = _derive_frozen_n()
 
     def pca_stats(ds, n_components):
         df = pd.read_csv(p / f"{ds}_pca.csv")
@@ -109,11 +128,11 @@ def build_phase3() -> dict:
             "comp_ratio_x": comp_ratio_x,
         }, n_features
 
-    wine_pca_stats, wine_n = pca_stats("wine", FROZEN_N["wine"]["pca"])
-    adult_pca_stats, adult_n = pca_stats("adult", FROZEN_N["adult"]["pca"])
+    wine_pca_stats, wine_n = pca_stats("wine", frozen_n["wine"]["pca"])
+    adult_pca_stats, adult_n = pca_stats("adult", frozen_n["adult"]["pca"])
 
     return {
-        "frozen_n": FROZEN_N,
+        "frozen_n": frozen_n,
         "wine": {
             "n_features": wine_n,
             "pca": wine_pca_stats,

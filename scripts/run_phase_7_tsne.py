@@ -15,6 +15,7 @@ Produces (4 PNGs):
   artifacts/figures/phase7_tsne/adult_tsne_clusters.png
 """
 
+import json
 import sys
 from pathlib import Path
 
@@ -30,9 +31,18 @@ from src.utils.logger import configure_logger
 from src.utils.plotting import plot_tsne
 
 FIGURES_DIR = ARTIFACTS_DIR / "figures" / "phase7_tsne"
+METADATA = ARTIFACTS_DIR / "metadata"
 
-# Frozen K from ADR-002
-FROZEN_K = {"wine": 2, "adult": 8}
+
+def _load_frozen_k() -> dict:
+    path = METADATA / "phase2.json"
+    if not path.exists():
+        raise FileNotFoundError(f"{path} not found — run 'make phase2' first.")
+    fk = json.loads(path.read_text())["frozen_k"]
+    return {ds: fk[ds]["kmeans"] for ds in ("wine", "adult")}
+
+
+FROZEN_K = _load_frozen_k()
 
 
 def main() -> None:

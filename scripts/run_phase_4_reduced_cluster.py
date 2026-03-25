@@ -39,12 +39,30 @@ from src.utils.plotting import plot_phase4_comparison, plot_phase4_heatmap
 OUTPUT_DIR = ARTIFACTS_DIR / "metrics" / "phase4_clustering"
 FIGURES_DIR = ARTIFACTS_DIR / "figures" / "phase4_clustering"
 PHASE2_METRICS = ARTIFACTS_DIR / "metrics" / "phase2_clustering"
+METADATA = ARTIFACTS_DIR / "metadata"
 
-# ── Frozen values from ADR-002 (K) and Phase 3 design (n_components) ──────────
-FROZEN = {
-    "wine": {"pca": 8, "ica": 4, "rp": 8, "kmeans_k": 2, "gmm_n": 7},
-    "adult": {"pca": 22, "ica": 11, "rp": 22, "kmeans_k": 8, "gmm_n": 7},
-}
+
+def _load_frozen() -> dict:
+    """Load frozen K (phase2.json) and frozen n_components (phase3.json)."""
+    for n in (2, 3):
+        path = METADATA / f"phase{n}.json"
+        if not path.exists():
+            raise FileNotFoundError(f"{path} not found — run 'make phase{n}' first.")
+    fk = json.loads((METADATA / "phase2.json").read_text())["frozen_k"]
+    fn = json.loads((METADATA / "phase3.json").read_text())["frozen_n"]
+    return {
+        ds: {
+            "pca": fn[ds]["pca"],
+            "ica": fn[ds]["ica"],
+            "rp": fn[ds]["rp"],
+            "kmeans_k": fk[ds]["kmeans"],
+            "gmm_n": fk[ds]["gmm"],
+        }
+        for ds in ("wine", "adult")
+    }
+
+
+FROZEN = _load_frozen()
 
 
 def reduce(X_train: np.ndarray, dr: str, n: int, seed: int) -> np.ndarray:

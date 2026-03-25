@@ -33,9 +33,17 @@ from src.utils.plotting import plot_f1_comparison, plot_learning_curves
 
 OUTPUT_DIR = ARTIFACTS_DIR / "metrics" / "phase5_nn_reduced"
 FIGURES_DIR = ARTIFACTS_DIR / "figures" / "phase5_nn_reduced"
+METADATA = ARTIFACTS_DIR / "metadata"
 
-# Frozen n_components from Phase 3 design.md
-FROZEN_N = {"pca": 8, "ica": 4, "rp": 8}
+
+def _load_frozen_n() -> dict:
+    path = METADATA / "phase3.json"
+    if not path.exists():
+        raise FileNotFoundError(f"{path} not found — run 'make phase3' first.")
+    return json.loads(path.read_text())["frozen_n"]["wine"]
+
+
+FROZEN_N = _load_frozen_n()
 
 
 def build_reduced_splits(
