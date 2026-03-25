@@ -4,7 +4,7 @@ PY=uv run python
 
 .PHONY: help setup env add-deps dev upgrade run lint format test clean \
         phase2 phase3 phase4 phase5 phase6 phase7 phase8 pipeline \
-        gate1 gate2 overnight
+        gate1 gate2 gates analysis overnight
 
 help: ## Show available targets
 	@echo "Available targets:"
@@ -44,7 +44,7 @@ clean: ## Remove local build artifacts and caches
 	rm -rf .pytest_cache .ruff_cache .venv
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 
-# ── Validation gates ───────────────────────────────────────────────────────────
+# ── Validation gates (run standalone before pipeline) ─────────────────────────
 
 gate1: ## Gate 1 — data loader tests (run after Phase 1)
 	uv run pytest tests/test_data.py -v
@@ -52,10 +52,15 @@ gate1: ## Gate 1 — data loader tests (run after Phase 1)
 gate2: ## Gate 2 — unsupervised tests (run after Phase 2)
 	uv run pytest tests/test_unsupervised.py -v
 
+gates: gate1 gate2 ## Run all validation gates
+
 # ── Phase scripts ──────────────────────────────────────────────────────────────
 
 phase2: ## Phase 2 — raw clustering sweep (wine + adult)
 	bash ml_run.sh "$(PY) scripts/run_phase_2_raw_cluster.py"
+
+analysis: ## K-selection report + ARI + phase2.json — run after phase2, update FROZEN_K, re-run before phase3
+	$(PY) scripts/run_phase_2_k_analysis.py
 
 phase3: ## Phase 3 — raw dimensionality reduction (PCA, ICA, RP)
 	bash ml_run.sh "$(PY) scripts/run_phase_3_raw_reduction.py"
@@ -77,7 +82,7 @@ phase8: ## Phase 8 — generate report tables from artifacts
 
 # ── Full pipeline ──────────────────────────────────────────────────────────────
 
-pipeline: gate1 gate2 phase2 phase3 phase4 phase5 phase6 phase7 phase8 ## Run full pipeline phase 2→8 (includes t-SNE)
+pipeline: phase2 analysis phase3 phase4 phase5 phase6 phase7 phase8 ## Run full pipeline phase 2→8 (includes t-SNE)
 
 overnight: ## Run full pipeline in background tmux/screen session (safe to close terminal)
 	bash ml_run.sh --detach "make pipeline" ul_phases

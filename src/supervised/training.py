@@ -30,7 +30,8 @@ def train_wine_nn(
     """
     Train WineNN for one seed and return per-epoch history.
 
-    Architecture and all hyperparameters are locked (see steering/tech.md).
+    Architecture and hyperparameters are fixed: Adam lr=1e-3, betas=(0.9,0.999),
+    weight_decay=0, hidden=100, epochs=20, batch_train=128, batch_val=256.
     Only input_dim is inferred from X_train.shape[1].
 
     Args:

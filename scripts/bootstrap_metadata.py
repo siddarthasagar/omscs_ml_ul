@@ -17,8 +17,9 @@ import pandas as pd
 
 from src.config import ARTIFACTS_DIR
 
-# FROZEN_K is imported from phase 2 — it is the single source of truth (ADR-002).
-from scripts.run_phase_2_raw_cluster import FROZEN_K  # noqa: E402
+# FROZEN_K is imported from the analysis script — it is the human decision
+# recorded after reviewing the sweep report (see FROZEN_K comment there).
+from scripts.run_phase_2_k_analysis import FROZEN_K  # noqa: E402
 
 METRICS = ARTIFACTS_DIR / "metrics"
 META_DIR = ARTIFACTS_DIR / "metadata"

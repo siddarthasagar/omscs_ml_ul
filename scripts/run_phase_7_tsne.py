@@ -3,7 +3,8 @@ Phase 7 (Extra Credit): t-SNE visualizations for Wine and Adult.
 
 For each dataset, produces two scatter plots:
   - Coloured by ground-truth class labels
-  - Coloured by frozen KMeans cluster assignment (k from ADR-002)
+  - Coloured by frozen KMeans cluster assignment (Wine k=2, Adult k=8 — chosen
+    by human review of sweep metrics, see FROZEN_K in run_phase_2_k_analysis.py)
 
 t-SNE is for qualitative visual support only. Embeddings are NOT saved as CSV
 and are NEVER used as NN inputs. Do not make quantitative claims from these plots.

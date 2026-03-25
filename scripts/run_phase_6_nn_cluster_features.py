@@ -1,13 +1,14 @@
 """
 Phase 6: Wine NN with cluster-derived features appended to the raw 12 inputs.
 
-Three variants (frozen K from ADR-002: KMeans k=2, GMM n=7):
+Three variants using frozen K values (Wine KMeans k=2, Wine GMM n=7 — chosen
+by human review of sweep metrics, see FROZEN_K comment in run_phase_2_k_analysis.py):
   kmeans_onehot  — raw(12) + one-hot assignment(2)   → input_dim=14
   kmeans_dist    — raw(12) + centroid distances(2)   → input_dim=14
   gmm_posterior  — raw(12) + GMM posteriors(7)       → input_dim=19
 
 Cluster models are fit on X_train (seed=42), then applied to val.
-NN training config is identical to Phase 5 (locked, see steering/tech.md).
+NN config identical to Phase 5: Adam lr=1e-3, hidden=100, epochs=20, batch=128.
 
 Produces:
   artifacts/metrics/phase6_nn_cluster/{variant}/seed{seed}.csv  (30 files)
@@ -39,10 +40,23 @@ from src.utils.plotting import plot_f1_comparison
 OUTPUT_DIR = ARTIFACTS_DIR / "metrics" / "phase6_nn_cluster"
 FIGURES_DIR = ARTIFACTS_DIR / "figures" / "phase6_nn_cluster"
 PHASE5_METRICS = ARTIFACTS_DIR / "metrics" / "phase5_nn_reduced"
+METADATA = ARTIFACTS_DIR / "metadata"
 
-# Frozen K from ADR-002
-KMEANS_K = 2
-GMM_N = 7
+
+def _load_frozen_k() -> tuple[int, int]:
+    """
+    Load frozen K values from phase2.json.
+    These were chosen by human review of sweep metrics — see FROZEN_K comment
+    in run_phase_2_k_analysis.py for full rationale.
+    """
+    path = METADATA / "phase2.json"
+    if not path.exists():
+        raise FileNotFoundError(f"{path} not found — run 'make analysis' first.")
+    fk = json.loads(path.read_text())["frozen_k"]["wine"]
+    return fk["kmeans"], fk["gmm"]
+
+
+KMEANS_K, GMM_N = _load_frozen_k()
 
 
 def build_augmented_splits(

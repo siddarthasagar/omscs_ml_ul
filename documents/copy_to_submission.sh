@@ -55,6 +55,7 @@ copy_file() {
 copy_dir "data"
 copy_dir "src"
 copy_dir "scripts"
+copy_dir "tests"
 
 # Root metadata/config files
 copy_file ".gitignore"
