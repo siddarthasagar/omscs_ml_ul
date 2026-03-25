@@ -1,17 +1,19 @@
 """
-Phase 8: Generate LaTeX table bodies from experiment artifacts.
+Phase 8: Generate LaTeX table bodies and prose number macros from experiment artifacts.
 
-Produces 5 .tex files in artifacts/tables/ — each contains only a tabular
-environment (no preamble) suitable for \\input{} in the Overleaf report.
-
-Tables:
+Produces 6 .tex files in artifacts/tables/:
   tab_phase2_clustering.tex  — raw clustering metrics at frozen K
   tab_phase3_reduction.tex   — frozen n_components per dataset+method
   tab_phase4_silhouette.tex  — silhouette in reduced spaces vs raw baseline
   tab_phase5_nn.tex          — NN Macro-F1 on DR-reduced inputs
   tab_phase6_nn.tex          — NN Macro-F1 with cluster-derived features
+  report_numbers.tex         — \\newcommand macros for every number cited in prose
+
+The report \\input{tables/report_numbers} in its preamble so all inline numbers
+are computed from the same CSVs as the tables, eliminating copy-paste drift.
 """
 
+import json
 import sys
 from pathlib import Path
 
@@ -24,12 +26,17 @@ from src.utils.logger import configure_logger
 
 METRICS = ARTIFACTS_DIR / "metrics"
 OUT_DIR = ARTIFACTS_DIR / "tables"
+METADATA = ARTIFACTS_DIR / "metadata"
 
-FROZEN_K = {"wine": {"kmeans": 2, "gmm": 7}, "adult": {"kmeans": 8, "gmm": 7}}
-FROZEN_N = {
-    "wine": {"PCA": 8, "ICA": 4, "RP": 8},
-    "adult": {"PCA": 22, "ICA": 11, "RP": 22},
-}
+
+def _load_metadata(n: int) -> dict:
+    """Load artifacts/metadata/phaseN.json written by the phase script."""
+    path = METADATA / f"phase{n}.json"
+    if not path.exists():
+        raise FileNotFoundError(
+            f"{path} not found — run 'make phase{n}' first to generate metadata."
+        )
+    return json.loads(path.read_text())
 
 
 # ── LaTeX helpers ──────────────────────────────────────────────────────────────
@@ -62,31 +69,30 @@ def _save(tex: str, name: str, log) -> Path:
 
 
 def emit_phase2_table(log) -> Path:
+    meta2 = _load_metadata(2)
+    frozen_k = meta2["frozen_k"]
+
     rows = []
     # Header
     rows.append("Dataset & Algorithm & $K$ & Silhouette & CH / BIC & DB / AIC \\\\")
     rows.append("\\midrule")
 
     for dataset in ("wine", "adult"):
-        # KMeans
-        df = pd.read_csv(METRICS / "phase2_clustering" / f"{dataset}_kmeans.csv")
-        k = FROZEN_K[dataset]["kmeans"]
-        r = df[df["k"] == k].iloc[0]
+        km = meta2[dataset]["kmeans"]
+        k = frozen_k[dataset]["kmeans"]
         rows.append(
             f"{dataset.title()} & K-Means & {k} "
-            f"& {r['silhouette']:.3f} "
-            f"& {r['calinski_harabasz']:.0f} "
-            f"& {r['davies_bouldin']:.3f} \\\\"
+            f"& {km['silhouette']:.3f} "
+            f"& {km['calinski_harabasz']:.0f} "
+            f"& {km['davies_bouldin']:.3f} \\\\"
         )
-        # GMM
-        df = pd.read_csv(METRICS / "phase2_clustering" / f"{dataset}_gmm.csv")
-        n = FROZEN_K[dataset]["gmm"]
-        r = df[df["n_components"] == n].iloc[0]
+        gm = meta2[dataset]["gmm"]
+        n = frozen_k[dataset]["gmm"]
         rows.append(
             f"{dataset.title()} & GMM (EM) & {n} "
-            f"& {r['silhouette']:.3f} "
-            f"& {r['bic']:.0f} "
-            f"& {r['aic']:.0f} \\\\"
+            f"& {gm['silhouette']:.3f} "
+            f"& {gm['bic']:.0f} "
+            f"& {gm['aic']:.0f} \\\\"
         )
 
     # Note row
@@ -106,24 +112,18 @@ def emit_phase2_table(log) -> Path:
 
 
 def emit_phase3_table(log) -> Path:
+    frozen_n = _load_metadata(3)["frozen_n"]
     CRITERIA = {
-        "wine": {
-            "PCA": "Cumulative variance $\\geq 90\\%$",
-            "ICA": "Above-median $|$kurtosis$|$ (floor 2)",
-            "RP": "= PCA target dim",
-        },
-        "adult": {
-            "PCA": "Cumulative variance $\\geq 90\\%$",
-            "ICA": "Above-median $|$kurtosis$|$ (floor 2)",
-            "RP": "= PCA target dim",
-        },
+        "PCA": "Cumulative variance $\\geq 90\\%$",
+        "ICA": "Above-median $|$kurtosis$|$ (floor 2)",
+        "RP": "= PCA target dim",
     }
 
     rows = ["Dataset & Method & $d$ & Selection criterion \\\\", "\\midrule"]
     for dataset in ("wine", "adult"):
         for method in ("PCA", "ICA", "RP"):
-            n = FROZEN_N[dataset][method]
-            crit = CRITERIA[dataset][method]
+            n = frozen_n[dataset][method.lower()]
+            crit = CRITERIA[method]
             rows.append(f"{dataset.title()} & {method} & {n} & {crit} \\\\")
 
     tex = _tex_table("llrl", rows)
@@ -134,21 +134,14 @@ def emit_phase3_table(log) -> Path:
 
 
 def emit_phase4_table(log) -> Path:
-    p4 = pd.read_csv(METRICS / "phase4_clustering" / "summary_table.csv")
+    meta2 = _load_metadata(2)
+    meta4 = _load_metadata(4)
 
-    # Build raw baselines from Phase 2
+    # Raw baselines from phase2 metadata
     raw_sil: dict[tuple, float] = {}
     for dataset in ("wine", "adult"):
-        km_df = pd.read_csv(METRICS / "phase2_clustering" / f"{dataset}_kmeans.csv")
-        k = FROZEN_K[dataset]["kmeans"]
-        raw_sil[(dataset, "KMeans")] = float(
-            km_df[km_df["k"] == k]["silhouette"].iloc[0]
-        )
-        gmm_df = pd.read_csv(METRICS / "phase2_clustering" / f"{dataset}_gmm.csv")
-        n = FROZEN_K[dataset]["gmm"]
-        raw_sil[(dataset, "GMM")] = float(
-            gmm_df[gmm_df["n_components"] == n]["silhouette"].iloc[0]
-        )
+        raw_sil[(dataset, "KMeans")] = meta2[dataset]["kmeans"]["silhouette"]
+        raw_sil[(dataset, "GMM")] = meta2[dataset]["gmm"]["silhouette"]
 
     combos = [
         ("wine", "KMeans"),
@@ -165,15 +158,8 @@ def emit_phase4_table(log) -> Path:
     for ds, cl in combos:
         vals: dict[str, float] = {"Raw": raw_sil[(ds, cl)]}
         for dr in dr_methods:
-            mask = (
-                (p4["dataset"] == ds)
-                & (p4["clusterer"] == cl)
-                & (p4["dr_method"] == dr)
-            )
-            row = p4[mask]
-            vals[dr] = (
-                float(row["silhouette"].iloc[0]) if not row.empty else float("nan")
-            )
+            key = f"{ds}_{cl.lower()}_{dr.lower()}"
+            vals[dr] = meta4["silhouette"].get(key, float("nan"))
 
         best_key = max(vals, key=lambda k: vals[k])
         cells = []
@@ -296,6 +282,322 @@ def emit_phase6_table(log) -> Path:
     return _save(tex, "tab_phase6_nn.tex", log)
 
 
+# ── Report number macros ───────────────────────────────────────────────────────
+
+
+def emit_report_numbers(log) -> Path:
+    """
+    Compute every number cited in report prose from per-phase metadata JSONs.
+    Writes artifacts/tables/report_numbers.tex with \\newcommand definitions.
+    All values come from artifacts/metadata/phaseN.json written by each phase script.
+    """
+    import math
+
+    meta2 = _load_metadata(2)
+    meta3 = _load_metadata(3)
+    meta4 = _load_metadata(4)
+    meta5 = _load_metadata(5)
+    meta6 = _load_metadata(6)
+
+    lines = [
+        "% AUTO-GENERATED by run_phase_8_report_tables.py — do NOT edit manually.",
+        "% Re-run: make phase8",
+        "% Every number cited in report prose is defined here as a \\newcommand.",
+        "% Usage in text: $\\WineKMAriType$ instead of hardcoded 0.981",
+        "%",
+    ]
+
+    def mac(name: str, value: str, comment: str = "") -> None:
+        c = f"  % {comment}" if comment else ""
+        lines.append(f"\\newcommand{{\\{name}}}{{{value}}}{c}")
+
+    def pct(val: float, decimals: int = 1) -> str:
+        return f"{val:.{decimals}f}"
+
+    def sil(val: float) -> str:
+        return f"{val:.3f}"
+
+    def f1(val: float) -> str:
+        return f"{val:.3f}"
+
+    def _rhu(x: float) -> int:
+        """Round-half-up: avoids Python banker's rounding (462.5 → 463, not 462)."""
+        return int(math.floor(x + 0.5))
+
+    # ── Phase 2 — raw clustering ───────────────────────────────────────────────
+    lines.append("% Phase 2 — raw clustering")
+    mac(
+        "WineKMSilhouette",
+        sil(meta2["wine"]["kmeans"]["silhouette"]),
+        "wine KMeans K=2 silhouette",
+    )
+    mac(
+        "WineKMCH",
+        f"{meta2['wine']['kmeans']['calinski_harabasz']:.0f}",
+        "wine KMeans K=2 CH",
+    )
+    mac(
+        "WineGmmRawSil",
+        sil(meta2["wine"]["gmm"]["silhouette"]),
+        "wine GMM K=7 raw silhouette",
+    )
+    mac(
+        "AdultGmmRawSil",
+        sil(meta2["adult"]["gmm"]["silhouette"]),
+        "adult GMM K=7 raw silhouette",
+    )
+    mac(
+        "AdultKMSilhouette",
+        sil(meta2["adult"]["kmeans"]["silhouette"]),
+        "adult KMeans K=8 silhouette",
+    )
+
+    mac(
+        "WineKMAriType",
+        f"{meta2['wine']['ari']['kmeans_type']:.3f}",
+        "wine KMeans ARI vs type",
+    )
+    mac(
+        "WineKMAriClass",
+        f"{meta2['wine']['ari']['kmeans_class']:.3f}",
+        "wine KMeans ARI vs quality",
+    )
+    mac(
+        "WineGmmAriClass",
+        f"{meta2['wine']['ari']['gmm_class']:.3f}",
+        "wine GMM ARI vs quality",
+    )
+    mac(
+        "WineGmmAriType",
+        f"{meta2['wine']['ari']['gmm_type']:.3f}",
+        "wine GMM ARI vs type",
+    )
+    mac(
+        "AdultKMAriClass",
+        f"{meta2['adult']['ari']['kmeans_class']:.3f}",
+        "adult KMeans ARI vs income",
+    )
+    mac(
+        "AdultGmmAriClass",
+        f"{meta2['adult']['ari']['gmm_class']:.3f}",
+        "adult GMM ARI vs income",
+    )
+
+    bic = float(meta2["adult"]["gmm"]["bic"])
+    exp = int(math.floor(math.log10(abs(bic))))
+    mac("AdultGmmBicMantissa", f"{bic / (10**exp):.2f}", "mantissa of adult GMM BIC")
+    mac("AdultGmmBicExp", str(exp), "exponent of adult GMM BIC")
+
+    # ── Phase 3 — dimensionality reduction ────────────────────────────────────
+    lines.append("% Phase 3 — dimensionality reduction")
+    fn = meta3["frozen_n"]
+    mac("WinePcaNComp", str(fn["wine"]["pca"]), "wine PCA frozen n_components")
+    mac("WineIcaNComp", str(fn["wine"]["ica"]), "wine ICA frozen n_components")
+    mac("AdultPcaNComp", str(fn["adult"]["pca"]), "adult PCA frozen n_components")
+    mac("AdultIcaNComp", str(fn["adult"]["ica"]), "adult ICA frozen n_components")
+
+    mac(
+        "WinePcaVarOne",
+        pct(meta3["wine"]["pca"]["pc1_var_pct"]),
+        "wine PC1 explained variance %",
+    )
+    mac(
+        "AdultPcaVarOne",
+        pct(meta3["adult"]["pca"]["pc1_var_pct"]),
+        "adult PC1 explained variance %",
+    )
+    mac(
+        "WinePcaVarRetained",
+        pct(meta3["wine"]["pca"]["cumvar_at_n_pct"]),
+        "wine cumvar at n_pca",
+    )
+    mac(
+        "WineCompRatioPct",
+        str(meta3["wine"]["pca"]["comp_ratio_pct"]),
+        "wine: % of dims retained by PCA",
+    )
+    mac(
+        "AdultCompRatioPct",
+        str(meta3["adult"]["pca"]["comp_ratio_pct"]),
+        "adult: % of dims retained by PCA",
+    )
+    mac(
+        "AdultCompRatioX",
+        pct(meta3["adult"]["pca"]["comp_ratio_x"]),
+        "adult compression ratio (fold)",
+    )
+    mac(
+        "WineCompRatioX",
+        pct(meta3["wine"]["pca"]["comp_ratio_x"]),
+        "wine compression ratio (fold)",
+    )
+
+    # ── Phase 4 — clustering in reduced spaces ────────────────────────────────
+    lines.append("% Phase 4 — clustering in reduced spaces")
+
+    def p4sil(ds, cl, dr):
+        return meta4["silhouette"][f"{ds}_{cl.lower()}_{dr.lower()}"]
+
+    def p4ari(ds, cl, dr):
+        return meta4["ari_raw_vs_reduced"][f"{ds}_{cl.lower()}_{dr.lower()}"]
+
+    wkm_raw = meta2["wine"]["kmeans"]["silhouette"]
+    akm_raw = meta2["adult"]["kmeans"]["silhouette"]
+    wgm_raw = meta2["wine"]["gmm"]["silhouette"]
+    agm_raw = meta2["adult"]["gmm"]["silhouette"]
+
+    for macro, ds, cl, dr in [
+        ("WineKMPcaSil", "wine", "KMeans", "PCA"),
+        ("WineKMIcaSil", "wine", "KMeans", "ICA"),
+        ("WineKMRpSil", "wine", "KMeans", "RP"),
+        ("WineGmmPcaSil", "wine", "GMM", "PCA"),
+        ("WineGmmIcaSil", "wine", "GMM", "ICA"),
+        ("AdultKMPcaSil", "adult", "KMeans", "PCA"),
+        ("AdultKMIcaSil", "adult", "KMeans", "ICA"),
+        ("AdultKMRpSil", "adult", "KMeans", "RP"),
+        ("AdultGmmPcaSil", "adult", "GMM", "PCA"),
+        ("AdultGmmIcaSil", "adult", "GMM", "ICA"),
+        ("AdultGmmRpSil", "adult", "GMM", "RP"),
+    ]:
+        mac(macro, sil(p4sil(ds, cl, dr)), f"{ds} {cl} {dr} silhouette")
+
+    # Gains — computed from 3-decimal rounded values (table precision) with round-half-up
+    def _gain(ds, cl, dr, base_raw):
+        return (
+            (round(p4sil(ds, cl, dr), 3) - round(base_raw, 3))
+            / round(base_raw, 3)
+            * 100
+        )
+
+    mac(
+        "WineKMPcaGainPct",
+        pct(_gain("wine", "KMeans", "PCA", wkm_raw), 1),
+        "wine KMeans: % sil gain PCA vs raw",
+    )
+    mac(
+        "AdultKMPcaGainPct",
+        str(_rhu(_gain("adult", "KMeans", "PCA", akm_raw))),
+        "adult KMeans: % sil gain PCA vs raw",
+    )
+    mac(
+        "WineGmmIcaGainPct",
+        str(_rhu(_gain("wine", "GMM", "ICA", wgm_raw))),
+        "wine GMM: % sil gain ICA vs raw",
+    )
+    mac(
+        "WineGmmPcaGainPct",
+        str(_rhu(_gain("wine", "GMM", "PCA", wgm_raw))),
+        "wine GMM: % sil gain PCA vs raw",
+    )
+    mac(
+        "AdultGmmIcaGainPct",
+        str(_rhu(_gain("adult", "GMM", "ICA", agm_raw))),
+        "adult GMM: % sil gain ICA vs raw",
+    )
+    mac(
+        "AdultGmmPcaGainPct",
+        str(_rhu(_gain("adult", "GMM", "PCA", agm_raw))),
+        "adult GMM: % sil gain PCA vs raw",
+    )
+
+    mac(
+        "WineKMPcaAri",
+        f"{p4ari('wine', 'KMeans', 'PCA'):.3f}",
+        "wine KMeans+PCA raw-vs-reduced ARI",
+    )
+    mac(
+        "WineKMIcaAri",
+        f"{p4ari('wine', 'KMeans', 'ICA'):.3f}",
+        "wine KMeans+ICA raw-vs-reduced ARI",
+    )
+    mac(
+        "AdultKMPcaAri",
+        f"{p4ari('adult', 'KMeans', 'PCA'):.3f}",
+        "adult KMeans+PCA raw-vs-reduced ARI",
+    )
+
+    gmm_aris = [
+        p4ari(ds, "GMM", dr) for ds in ("wine", "adult") for dr in ("PCA", "ICA", "RP")
+    ]
+    mac(
+        "GmmAriMin",
+        f"{min(gmm_aris):.2f}",
+        "min GMM raw-vs-reduced ARI across all combos",
+    )
+    mac(
+        "GmmAriMax",
+        f"{max(gmm_aris):.2f}",
+        "max GMM raw-vs-reduced ARI across all combos",
+    )
+
+    # ── Phase 5 — NN on reduced inputs ────────────────────────────────────────
+    lines.append("% Phase 5 — NN on DR-reduced inputs")
+    raw_f1 = meta5["mean_f1"]["raw"]
+    mac("RawFscore", f1(raw_f1), "raw variant mean val F1")
+    mac("PcaFscore", f1(meta5["mean_f1"]["pca"]), "PCA variant mean val F1")
+    mac("IcaFscore", f1(meta5["mean_f1"]["ica"]), "ICA variant mean val F1")
+    mac("RpFscore", f1(meta5["mean_f1"]["rp"]), "RP variant mean val F1")
+
+    mac(
+        "PcaDegradPct",
+        pct((raw_f1 - meta5["mean_f1"]["pca"]) / raw_f1 * 100),
+        "PCA F1 degradation vs raw %",
+    )
+    mac(
+        "RpDegradPct",
+        pct((raw_f1 - meta5["mean_f1"]["rp"]) / raw_f1 * 100),
+        "RP F1 degradation vs raw %",
+    )
+    mac(
+        "IcaDegradPct",
+        pct((raw_f1 - meta5["mean_f1"]["ica"]) / raw_f1 * 100),
+        "ICA F1 degradation vs raw %",
+    )
+
+    reduced_times = [meta5["mean_timing_s"][v] for v in ("pca", "ica", "rp")]
+    mac(
+        "RawTimingS",
+        f"{meta5['mean_timing_s']['raw']:.2f}",
+        "raw mean training time seconds",
+    )
+    mac(
+        "ReducedTimingLo",
+        f"{min(reduced_times):.2f}",
+        "min reduced-variant mean training time",
+    )
+    mac(
+        "ReducedTimingHi",
+        f"{max(reduced_times):.2f}",
+        "max reduced-variant mean training time",
+    )
+
+    # ── Phase 6 — NN with cluster features ────────────────────────────────────
+    lines.append("% Phase 6 — NN with cluster-derived features")
+    for name, variant in [
+        ("KMeansOnehot", "kmeans_onehot"),
+        ("KMeansDist", "kmeans_dist"),
+        ("GmmPost", "gmm_posterior"),
+    ]:
+        m = meta6["mean_f1"][variant]
+        mac(f"{name}Fscore", f1(m), f"{variant} mean F1")
+        mac(f"{name}Dim", str(meta6["input_dim"][variant]), f"{variant} input dim")
+        mac(
+            f"{name}GainPct",
+            pct((m - raw_f1) / raw_f1 * 100),
+            f"{variant} gain vs raw %",
+        )
+
+    # ── Write file ─────────────────────────────────────────────────────────────
+    path = OUT_DIR / "report_numbers.tex"
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    log.info(
+        "  → %s  (%d macros)",
+        path,
+        sum(1 for line in lines if line.startswith("\\newcommand")),
+    )
+    return path
+
+
 # ── Main ───────────────────────────────────────────────────────────────────────
 
 
@@ -311,9 +613,12 @@ def main() -> None:
     emit_phase4_table(log)
     emit_phase5_table(log)
     emit_phase6_table(log)
+    emit_report_numbers(log)
 
-    log.info("Phase 8 complete — 5 LaTeX tables in %s", OUT_DIR)
-    log.info("Usage in report: \\input{tab_phase2_clustering} etc.")
+    log.info("Phase 8 complete — 5 tables + report_numbers.tex in %s", OUT_DIR)
+    log.info(
+        "Usage: \\input{tables/report_numbers} in preamble, then use macros in prose."
+    )
 
 
 if __name__ == "__main__":

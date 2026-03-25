@@ -11,7 +11,7 @@ Datasets: data/adult.csv, data/wine.csv.
 - Phase 5: [x] COMPLETE — 40 runs (4 variants × 10 seeds), 2 figures, Gate 3 passed 2026-03-21
 - Phase 6: [x] COMPLETE — 30 runs (3 variants × 10 seeds), 1 figure, baseline overlaid 2026-03-21
 - Phase 7: [x] COMPLETE — 4 t-SNE PNGs (labels + clusters for Wine and Adult) 2026-03-21
-- Phase 8: [x] COMPLETE — 5 LaTeX table bodies in artifacts/tables/ 2026-03-23
+- Phase 8: [x] COMPLETE — 5 LaTeX table bodies + 65-macro report_numbers.tex; metadata JSON refactor done 2026-03-25
 Update this block at end of every session.
 
 ## Session Rules (enforced every conversation)

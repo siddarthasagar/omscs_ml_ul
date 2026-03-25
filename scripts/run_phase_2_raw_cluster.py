@@ -8,6 +8,7 @@ Also computes ARI between frozen-K cluster assignments and ground-truth labels
 (Wine: quality class + type; Adult: income class) and saves ari_results.csv.
 """
 
+import json
 import sys
 from pathlib import Path
 
@@ -133,6 +134,63 @@ def main() -> None:
     ari_df.to_csv(ari_path, index=False)
     log.info("ARI results → %s", ari_path)
     log.info("\n%s", ari_df.to_string(index=False))
+
+    # ── Metadata JSON ──────────────────────────────────────────────────────────
+    km_wine = pd.read_csv(OUTPUT_DIR / "wine_kmeans.csv")
+    gm_wine = pd.read_csv(OUTPUT_DIR / "wine_gmm.csv")
+    km_adult = pd.read_csv(OUTPUT_DIR / "adult_kmeans.csv")
+    gm_adult = pd.read_csv(OUTPUT_DIR / "adult_gmm.csv")
+
+    def _km_row(df, k):
+        r = df[df["k"] == k].iloc[0]
+        return {
+            "silhouette": round(float(r["silhouette"]), 4),
+            "calinski_harabasz": round(float(r["calinski_harabasz"]), 1),
+            "davies_bouldin": round(float(r["davies_bouldin"]), 4),
+        }
+
+    def _gm_row(df, n):
+        r = df[df["n_components"] == n].iloc[0]
+        return {
+            "silhouette": round(float(r["silhouette"]), 4),
+            "bic": round(float(r["bic"]), 2),
+            "aic": round(float(r["aic"]), 2),
+        }
+
+    def _ari(ds, cl, lbl):
+        r = ari_df[
+            (ari_df["dataset"] == ds)
+            & (ari_df["clusterer"] == cl)
+            & (ari_df["label"] == lbl)
+        ]
+        return round(float(r["ARI"].iloc[0]), 4) if not r.empty else None
+
+    meta = {
+        "frozen_k": FROZEN_K,
+        "wine": {
+            "kmeans": _km_row(km_wine, FROZEN_K["wine"]["kmeans"]),
+            "gmm": _gm_row(gm_wine, FROZEN_K["wine"]["gmm"]),
+            "ari": {
+                "kmeans_type": _ari("wine", "KMeans", "type"),
+                "kmeans_class": _ari("wine", "KMeans", "class"),
+                "gmm_type": _ari("wine", "GMM", "type"),
+                "gmm_class": _ari("wine", "GMM", "class"),
+            },
+        },
+        "adult": {
+            "kmeans": _km_row(km_adult, FROZEN_K["adult"]["kmeans"]),
+            "gmm": _gm_row(gm_adult, FROZEN_K["adult"]["gmm"]),
+            "ari": {
+                "kmeans_class": _ari("adult", "KMeans", "class"),
+                "gmm_class": _ari("adult", "GMM", "class"),
+            },
+        },
+    }
+    meta_dir = ARTIFACTS_DIR / "metadata"
+    meta_dir.mkdir(parents=True, exist_ok=True)
+    meta_path = meta_dir / "phase2.json"
+    meta_path.write_text(json.dumps(meta, indent=2))
+    log.info("Metadata → %s", meta_path)
 
     log.info("── Phase 2 complete. Artifacts:")
     for p in sorted(OUTPUT_DIR.glob("*.csv")):

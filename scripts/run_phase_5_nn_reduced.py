@@ -13,6 +13,7 @@ Produces:
   artifacts/figures/phase5_nn_reduced/{variant}_learning_curves.png  (4 files)
 """
 
+import json
 import sys
 import time
 from pathlib import Path
@@ -193,6 +194,20 @@ def main() -> None:
             vdf.min(),
             vdf.max(),
         )
+
+    # ── Metadata JSON ──────────────────────────────────────────────────────────
+    def _vmean(col, v):
+        return round(float(comparison_df[comparison_df["variant"] == v][col].mean()), 4)
+
+    meta = {
+        "mean_f1": {v: _vmean("val_f1_final", v) for v in variants},
+        "mean_timing_s": {v: _vmean("train_time_s", v) for v in variants},
+    }
+    meta_dir = ARTIFACTS_DIR / "metadata"
+    meta_dir.mkdir(parents=True, exist_ok=True)
+    meta_path = meta_dir / "phase5.json"
+    meta_path.write_text(json.dumps(meta, indent=2))
+    log.info("Metadata → %s", meta_path)
 
 
 if __name__ == "__main__":

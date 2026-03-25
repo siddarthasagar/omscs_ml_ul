@@ -8,6 +8,7 @@ Also generates PCA/ICA component loadings heatmaps saved to
 artifacts/figures/analysis/ for use in the report.
 """
 
+import json
 import sys
 from pathlib import Path
 
@@ -175,7 +176,21 @@ def run_dataset(
         rp_df["reconstruction_error"].std(),
     )
 
-    return {"pca": n_pca, "ica": n_ica, "rp": n_rp}
+    pc1_var_pct = round(float(pca.explained_variance_ratio_[0]) * 100, 1)
+    cumvar_at_n_pct = round(float(cumvar[n_pca - 1]) * 100, 1)
+    comp_ratio_pct = round(n_pca / n_features * 100)
+    comp_ratio_x = round(n_features / n_pca, 1)
+
+    return {
+        "pca": n_pca,
+        "ica": n_ica,
+        "rp": n_rp,
+        "pc1_var_pct": pc1_var_pct,
+        "cumvar_at_n_pct": cumvar_at_n_pct,
+        "comp_ratio_pct": comp_ratio_pct,
+        "comp_ratio_x": comp_ratio_x,
+        "n_features": n_features,
+    }
 
 
 def main() -> None:
@@ -205,6 +220,40 @@ def main() -> None:
         log.info(
             "   %s: PCA=%d  ICA=%d  RP=%d", name, vals["pca"], vals["ica"], vals["rp"]
         )
+
+    # ── Metadata JSON ──────────────────────────────────────────────────────────
+    meta = {
+        "frozen_n": {
+            ds: {
+                "pca": frozen[ds]["pca"],
+                "ica": frozen[ds]["ica"],
+                "rp": frozen[ds]["rp"],
+            }
+            for ds in frozen
+        },
+        "wine": {
+            "n_features": frozen["wine"]["n_features"],
+            "pca": {
+                "pc1_var_pct": frozen["wine"]["pc1_var_pct"],
+                "cumvar_at_n_pct": frozen["wine"]["cumvar_at_n_pct"],
+                "comp_ratio_pct": frozen["wine"]["comp_ratio_pct"],
+                "comp_ratio_x": frozen["wine"]["comp_ratio_x"],
+            },
+        },
+        "adult": {
+            "n_features": frozen["adult"]["n_features"],
+            "pca": {
+                "pc1_var_pct": frozen["adult"]["pc1_var_pct"],
+                "comp_ratio_pct": frozen["adult"]["comp_ratio_pct"],
+                "comp_ratio_x": frozen["adult"]["comp_ratio_x"],
+            },
+        },
+    }
+    meta_dir = ARTIFACTS_DIR / "metadata"
+    meta_dir.mkdir(parents=True, exist_ok=True)
+    meta_path = meta_dir / "phase3.json"
+    meta_path.write_text(json.dumps(meta, indent=2))
+    log.info("Metadata → %s", meta_path)
 
     log.info("── Artifacts:")
     for p in sorted(OUTPUT_DIR.glob("*.csv")):

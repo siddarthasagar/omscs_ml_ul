@@ -15,6 +15,7 @@ Produces:
   artifacts/figures/phase6_nn_cluster/phase6_f1_boxplot.png
 """
 
+import json
 import sys
 from pathlib import Path
 
@@ -163,6 +164,28 @@ def main() -> None:
 
     if raw_median is not None:
         log.info("  Phase 5 raw baseline median: %.4f", raw_median)
+
+    # ── Metadata JSON ──────────────────────────────────────────────────────────
+    meta = {
+        "mean_f1": {
+            v: round(
+                float(
+                    comparison_df[comparison_df["variant"] == v]["val_f1_final"].mean()
+                ),
+                4,
+            )
+            for v in variants
+        },
+        "input_dim": {
+            v: int(comparison_df[comparison_df["variant"] == v]["input_dim"].iloc[0])
+            for v in variants
+        },
+    }
+    meta_dir = ARTIFACTS_DIR / "metadata"
+    meta_dir.mkdir(parents=True, exist_ok=True)
+    meta_path = meta_dir / "phase6.json"
+    meta_path.write_text(json.dumps(meta, indent=2))
+    log.info("Metadata → %s", meta_path)
 
 
 if __name__ == "__main__":

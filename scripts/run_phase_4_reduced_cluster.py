@@ -11,6 +11,7 @@ Produces:
   artifacts/figures/phase4_clustering/{wine,adult}_phase4_bar.png
 """
 
+import json
 import sys
 from pathlib import Path
 
@@ -266,6 +267,18 @@ def main() -> None:
             row["k"],
             row["silhouette"],
         )
+
+    # ── Metadata JSON ──────────────────────────────────────────────────────────
+    meta: dict = {"silhouette": {}, "ari_raw_vs_reduced": {}}
+    for _, row in summary_df.iterrows():
+        key = f"{row['dataset']}_{row['clusterer'].lower()}_{row['dr_method'].lower()}"
+        meta["silhouette"][key] = round(float(row["silhouette"]), 4)
+        meta["ari_raw_vs_reduced"][key] = round(float(row["raw_vs_reduced_ari"]), 4)
+    meta_dir = ARTIFACTS_DIR / "metadata"
+    meta_dir.mkdir(parents=True, exist_ok=True)
+    meta_path = meta_dir / "phase4.json"
+    meta_path.write_text(json.dumps(meta, indent=2))
+    log.info("Metadata → %s", meta_path)
 
 
 if __name__ == "__main__":

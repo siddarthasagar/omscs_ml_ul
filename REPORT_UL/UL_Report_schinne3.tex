@@ -45,6 +45,9 @@
 
 \graphicspath{{figures/}}
 
+% Auto-generated number macros — re-run make phase8 to update
+\input{tables/report_numbers}
+
 \title{\LARGE \bf
 Unsupervised Learning and Dimensionality Reduction:\\
 Clustering, Projection, and Neural Network Analysis\\
@@ -182,62 +185,57 @@ transformation.
   \input{tables/tab_phase2_clustering}
 \end{table}
 
-\begin{figure*}[t]
+\begin{figure}[t]
   \centering
-  \begin{subfigure}{0.23\textwidth}
+  \begin{subfigure}{0.48\linewidth}
     \includegraphics[width=\linewidth]{phase2_clustering/wine_kmeans}
     \caption{Wine K-Means}
   \end{subfigure}
   \hfill
-  \begin{subfigure}{0.23\textwidth}
+  \begin{subfigure}{0.48\linewidth}
     \includegraphics[width=\linewidth]{phase2_clustering/adult_kmeans}
     \caption{Adult K-Means}
   \end{subfigure}
-  \hfill
-  \begin{subfigure}{0.23\textwidth}
+  \\[2pt]
+  \begin{subfigure}{0.48\linewidth}
     \includegraphics[width=\linewidth]{phase2_clustering/wine_gmm}
     \caption{Wine GMM}
   \end{subfigure}
   \hfill
-  \begin{subfigure}{0.23\textwidth}
+  \begin{subfigure}{0.48\linewidth}
     \includegraphics[width=\linewidth]{phase2_clustering/adult_gmm}
     \caption{Adult GMM}
   \end{subfigure}
   \caption{Clustering metric sweeps across $K \in [2,20]$.
-  \textbf{Takeaway (K-Means):} Wine peaks sharply at $K\!=\!2$ with silhouette
-  declining monotonically --- consistent with one dominant partition (red
-  vs.\ white) rather than quality grades.  Adult shows a gradual plateau near
-  $K\!=\!8$; the absence of a clean elbow reflects the high-dimensional sparse
-  OHE geometry where Euclidean distances are less discriminative.
-  \textbf{Takeaway (GMM):} Both datasets select $K\!=\!7$ via BIC minimization.
-  Wine's BIC curve is positive and relatively flat, indicating the generative
-  model does not fit cleanly at any $K$; Adult's strongly negative BIC confirms
-  an excellent generative fit consistent with its near-linear structure.}
+  \textbf{K-Means:} Wine peaks sharply at $K\!=\!2$; Adult plateaus near
+  $K\!=\!8$.
+  \textbf{GMM:} Both datasets select $K\!=\!7$ via BIC.
+  Adult's strongly negative BIC confirms an excellent generative fit.}
   \label{fig:kmeans_sweep}
-\end{figure*}
+\end{figure}
 
 Table~\ref{tab:phase2} and Fig.~\ref{fig:kmeans_sweep} summarize the clustering
-results.  Wine K-Means selects $K=2$ at silhouette 0.340 and CH\,=\,1{,}497,
+results.  Wine K-Means selects $K=2$ at silhouette $\WineKMSilhouette$ and CH\,=\,1{,}497,
 indicating two compact, well-separated macro-clusters.  To determine whether
 these clusters align with the ground-truth structure, we computed the Adjusted
 Rand Index (ARI) between each cluster assignment and the available labels.
-Wine KMeans $K\!=\!2$ achieves ARI\,=\,0.981 against the binary red/white type
+Wine KMeans $K\!=\!2$ achieves ARI\,=\,$\WineKMAriType$ against the binary red/white type
 label --- near-perfect agreement --- while ARI against the 8 quality classes is
-only 0.182.  The clustering has therefore recovered the wine type, not quality,
+only $\WineKMAriClass$.  The clustering has therefore recovered the wine type, not quality,
 consistent with the prior EDA finding that quality classes overlap severely.
-Wine GMM $K\!=\!7$ achieves ARI\,=\,0.118 against quality and ARI\,=\,0.218
+Wine GMM $K\!=\!7$ achieves ARI\,=\,$\WineGmmAriClass$ against quality and ARI\,=\,$\WineGmmAriType$
 against type, indicating its seven components span both wine types without
 cleanly recovering either structure; EM finds a statistically optimal generative
 decomposition, but the resulting components do not correspond to compact or
 label-aligned spatial regions.
 
-Adult K-Means selects $K=8$ at silhouette 0.114 --- low, but consistent with
+Adult K-Means selects $K=8$ at silhouette $\AdultKMSilhouette$ --- low, but consistent with
 high-dimensional sparse geometry where Euclidean distances are less
-discriminative.  Adult KMeans $K\!=\!8$ achieves ARI\,=\,0.059 against the
-binary income label, and Adult GMM $K\!=\!7$ achieves ARI\,=\,0.079 ---  both
+discriminative.  Adult KMeans $K\!=\!8$ achieves ARI\,=\,$\AdultKMAriClass$ against the
+binary income label, and Adult GMM $K\!=\!7$ achieves ARI\,=\,$\AdultGmmAriClass$ ---  both
 near zero, confirming that the cluster structure reflects feature co-occurrence
 patterns in the OHE space rather than the supervised income boundary.  Adult GMM
-achieves a strongly negative BIC ($-8.29\!\times\!10^6$) at $K=7$, indicating
+achieves a strongly negative BIC ($\AdultGmmBicMantissa\!\times\!10^{\AdultGmmBicExp}$) at $K=7$, indicating
 an excellent generative fit; the negative sign is expected for large-$n$
 datasets where the log-likelihood term dominates the BIC penalty.  The contrast
 between Adult's excellent BIC and its near-zero ARI illustrates that generative
@@ -264,10 +262,10 @@ fit and label-aligned cluster quality are independent objectives.
     \caption{Adult PCA}
   \end{subfigure}
   \caption{Cumulative explained variance vs.\ component count.
-  \textbf{Takeaway:} Wine reaches 90\% at $d\!=\!8$ of 12 features
-  (PC1\,=\,31.9\%), retaining 67\% of dimensions.  Adult requires $d\!=\!22$
-  of 104 features with a notably flat spectrum (PC1\,=\,15.3\%), compressing to
-  21\% of dimensions --- confirming that Adult's OHE redundancy is distributed
+  \textbf{Takeaway:} Wine reaches 90\% at $d\!=\!\WinePcaNComp$ of 12 features
+  (PC1\,=\,$\WinePcaVarOne$\%), retaining $\WineCompRatioPct$\% of dimensions.  Adult requires $d\!=\!\AdultPcaNComp$
+  of 104 features with a notably flat spectrum (PC1\,=\,$\AdultPcaVarOne$\%), compressing to
+  $\AdultCompRatioPct$\% of dimensions --- confirming that Adult's OHE redundancy is distributed
   across many correlated axes rather than concentrated in a few dominant ones.}
   \label{fig:pca}
 \end{figure}
@@ -314,12 +312,12 @@ fit and label-aligned cluster quality are independent objectives.
 
 Table~\ref{tab:phase3} and Figs.~\ref{fig:pca}--\ref{fig:rp} summarize the DR
 analysis.  The PCA eigenvalue spectra in Fig.~\ref{fig:pca} expose the
-compression-ratio disparity at the heart of the hypothesis.  Wine retains 8 of
-12 principal components (67\%), a modest compression in a space that was already
-compact; PC1 capturing 31.9\% indicates moderate collinearity, consistent with
+compression-ratio disparity at the heart of the hypothesis.  Wine retains $\WinePcaNComp$ of
+12 principal components ($\WineCompRatioPct$\%), a modest compression in a space that was already
+compact; PC1 capturing $\WinePcaVarOne$\% indicates moderate collinearity, consistent with
 the known correlations among acidity, pH, and density in physicochemical data.
-Adult requires 22 of 104 components (21\%), a $4.7\!\times$ reduction; its flat
-spectrum (PC1\,=\,15.3\%) reflects OHE redundancy distributed across the entire
+Adult requires $\AdultPcaNComp$ of 104 components ($\AdultCompRatioPct$\%), a $\AdultCompRatioX\!\times$ reduction; its flat
+spectrum (PC1\,=\,$\AdultPcaVarOne$\%) reflects OHE redundancy distributed across the entire
 feature matrix rather than concentrated in a dominant direction.  The intrinsic
 dimensionality of Adult's training data is therefore far lower than its nominal
 104 dimensions, which explains why PCA compression benefits downstream tasks
@@ -331,7 +329,7 @@ For Wine, PC1 loads most heavily on \texttt{type} (red/white indicator),
 \texttt{total SO\textsubscript{2}}, and \texttt{volatile acidity}: the first
 principal direction is essentially the red-vs-white split, which directly
 explains why Wine KMeans $K\!=\!2$ under PCA reproduces the raw partition with
-ARI\,=\,0.998.  PC2 captures the density--alcohol--residual sugar triangle, a
+ARI\,=\,$\WineKMPcaAri$.  PC2 captures the density--alcohol--residual sugar triangle, a
 known physicochemical constraint in wine (higher alcohol density corresponds to
 lower residual sugar).  PC3 separates the acidity cluster (citric acid, pH,
 fixed acidity), reflecting a third independent axis of wine chemistry.  For
@@ -413,43 +411,41 @@ dimensionality.
   \input{tables/tab_phase4_silhouette}
 \end{table}
 
-\begin{figure*}[t]
+\begin{figure}[t]
   \centering
-  \includegraphics[width=0.88\textwidth]{phase4_clustering/phase4_clustering_heatmap}
+  \includegraphics[width=\linewidth]{phase4_clustering/phase4_clustering_heatmap}
   \caption{Per-metric clustering quality across all 12 DR-clusterer combinations
-  (each column uses its own color scale).  \textbf{Takeaway:} PCA consistently
-  strengthens K-Means silhouette on both datasets while ICA produces the most
-  pronounced GMM improvement.  RP tracks PCA closely for Adult K-Means but
-  falls short on Wine, where random projections of a compact 12-d space
-  introduce more noise than PCA's optimized axes.}
+  (each column uses its own color scale).  \textbf{Takeaway:} PCA strengthens
+  K-Means silhouette on both datasets; ICA produces the most pronounced GMM
+  improvement.  RP tracks PCA closely for Adult K-Means but falls short on Wine.}
   \label{fig:heatmap}
-\end{figure*}
+\end{figure}
 
 Table~\ref{tab:phase4} and Fig.~\ref{fig:heatmap} present the silhouette
 comparison.  The hypothesis is directionally confirmed: Adult K-Means gains
-$+23\%$ silhouette under PCA ($0.114 \to 0.140$) while Wine K-Means gains only
-$+4.7\%$ ($0.340 \to 0.356$).  The gap is explained by compression ratios:
+$+\AdultKMPcaGainPct\%$ silhouette under PCA ($\AdultKMSilhouette \to \AdultKMPcaSil$) while Wine K-Means gains only
+$+\WineKMPcaGainPct\%$ ($\WineKMSilhouette \to \WineKMPcaSil$).  The gap is explained by compression ratios:
 PCA removes 79\% of Adult's dimensions but only 33\% of Wine's, and the
 additional denoising in Adult's space allows K-Means' Euclidean metric to find
 tighter, more separated clusters.
 
 The largest single result in the table is Wine GMM under ICA: silhouette
-improves from 0.040 to 0.225, a $+463\%$ gain that PCA achieves only partially
-(0.112, $+176\%$).  This divergence reflects algorithm geometry.  ICA
+improves from $\WineGmmRawSil$ to $\WineGmmIcaSil$, a $+\WineGmmIcaGainPct\%$ gain that PCA achieves only partially
+($\WineGmmPcaSil$, $+\WineGmmPcaGainPct\%$).  This divergence reflects algorithm geometry.  ICA
 maximizes statistical independence via non-Gaussianity, producing a latent space
 where mixture components are more separated than in the PCA subspace.  GMM's
 Gaussian mixture formulation is naturally aligned with this structure, while
 K-Means' spherical Voronoi assumption cannot exploit the non-Gaussian geometry.
-The same pairing advantage appears on Adult: ICA gives GMM a $+109\%$ gain
-(0.058 to 0.121) compared to PCA's $+81\%$ (0.105), though both methods
+The same pairing advantage appears on Adult: ICA gives GMM a $+\AdultGmmIcaGainPct\%$ gain
+($\AdultGmmRawSil$ to $\AdultGmmIcaSil$) compared to PCA's $+\AdultGmmPcaGainPct\%$ ($\AdultGmmPcaSil$), though both methods
 substantially improve Adult GMM.
 
-RP matches PCA for Adult K-Means (silhouette 0.139 vs.\ 0.140), consistent with
+RP matches PCA for Adult K-Means (silhouette $\AdultKMRpSil$ vs.\ $\AdultKMPcaSil$), consistent with
 the Johnson-Lindenstrauss guarantee that pairwise Euclidean distances are
-approximately preserved.  On Wine, RP (0.260) falls below PCA (0.356) for
+approximately preserved.  On Wine, RP ($\WineKMRpSil$) falls below PCA ($\WineKMPcaSil$) for
 K-Means: projecting an already-compact 12-d space with a random matrix
 introduces variance-unweighted noise that PCA's sorted eigendecomposition
-avoids.  ICA ($d\!=\!4$) produces the worst Wine K-Means result (0.194),
+avoids.  ICA ($d\!=\!4$) produces the worst Wine K-Means result ($\WineKMIcaSil$),
 because four components are insufficient to represent the two-cluster spatial
 separation that requires $\sim$8 dimensions.
 
@@ -457,7 +453,7 @@ The Calinski-Harabasz and Davies-Bouldin metrics in Fig.~\ref{fig:heatmap} tell
 a consistent story with silhouette: wherever silhouette improves under a given
 DR method, CH increases and DB decreases in the same cell, confirming that the
 quality gains are not artifacts of any single metric's geometric assumptions.
-The one notable divergence is Adult GMM under RP, where silhouette (0.039) is
+The one notable divergence is Adult GMM under RP, where silhouette ($\AdultGmmRpSil$) is
 the lowest of all Adult GMM combinations yet DB remains moderate --- reflecting
 that RP's random projection introduces cluster boundary noise that silhouette
 penalizes heavily but DB, averaging over within-cluster dispersion, is less
@@ -466,19 +462,19 @@ sensitive to.
 \textbf{Cluster membership stability.}  To determine whether DR produces the
 same clusters as raw-space clustering or fundamentally different ones, we
 computed ARI between raw and reduced cluster assignments for each combination.
-Wine KMeans under PCA achieves ARI\,=\,0.998 --- the $K\!=\!2$ red/white
+Wine KMeans under PCA achieves ARI\,=\,$\WineKMPcaAri$ --- the $K\!=\!2$ red/white
 partition is essentially identical before and after PCA compression, because
-the dominant variance direction that PCA PC1 captures (31.9\%) is exactly the
+the dominant variance direction that PCA PC1 captures ($\WinePcaVarOne$\%) is exactly the
 direction that separates the two macro-clusters.  The silhouette improvement
-($+4.7\%$) therefore reflects a cleaner version of the same partition rather
+($+\WineKMPcaGainPct\%$) therefore reflects a cleaner version of the same partition rather
 than a different grouping.  Wine KMeans under ICA, by contrast, achieves
-ARI\,=\,$-0.010$ --- the assignment is entirely different, which directly
-explains the silhouette drop (0.340 to 0.194): four ICA components cannot
+ARI\,=\,$\WineKMIcaAri$ --- the assignment is entirely different, which directly
+explains the silhouette drop ($\WineKMSilhouette$ to $\WineKMIcaSil$): four ICA components cannot
 represent the two-cluster spatial separation that requires $\sim$8 dimensions.
-Adult KMeans under PCA achieves ARI\,=\,0.804, confirming that PCA's
+Adult KMeans under PCA achieves ARI\,=\,$\AdultKMPcaAri$, confirming that PCA's
 denoising preserves most of the raw partition while tightening cluster
-boundaries enough to improve silhouette by 23\%.  GMM combinations across all
-DR methods show moderate ARI values (0.24--0.50), reflecting that EM's soft
+boundaries enough to improve silhouette by $\AdultKMPcaGainPct$\%.  GMM combinations across all
+DR methods show moderate ARI values ($\GmmAriMin$--$\GmmAriMax$), reflecting that EM's soft
 assignments are sensitive to the geometry of the projected space and naturally
 reorganize around the new covariance structure --- which is why ICA can
 dramatically improve GMM silhouette even while producing cluster memberships
@@ -520,27 +516,26 @@ that differ substantially from the raw solution.
   \label{fig:f1_boxplots}
 \end{figure}
 
-\begin{figure*}[t]
+\begin{figure}[t]
   \centering
-  \includegraphics[width=0.92\textwidth]{phase5_nn_reduced/phase5_learning_curves}
+  \includegraphics[width=\linewidth]{phase5_nn_reduced/phase5_learning_curves}
   \caption{Learning curves across DR variants (mean $\pm$ 1\,SD, 10 seeds).
   \textbf{Takeaway:} All four variants converge to similar training-loss
-  trajectories, confirming the architecture and optimizer are not bottlenecks.
-  The validation F1 gap between Raw and ICA widens across all 20 epochs rather
-  than closing, ruling out slower convergence as an explanation --- the ICA 4-d
-  space genuinely lacks the capacity to encode adjacent quality classes.}
+  trajectories.  The validation F1 gap between Raw and ICA widens across all
+  20 epochs, ruling out slower convergence --- the ICA 4-d space genuinely lacks
+  capacity to separate adjacent quality classes.}
   \label{fig:learning_curves}
-\end{figure*}
+\end{figure}
 
 \subsection{Step 4 --- DR-Reduced Inputs}
 
 Tables~\ref{tab:phase5} and Fig.~\ref{fig:f1_boxplots}(a) confirm the
 information bottleneck prediction: every DR method degrades mean Macro-F1
-relative to the 12-d raw baseline (0.329), and the degradation is strictly
-ordered by compression severity.  PCA ($d\!=\!8$, $-2.5\%$) retains 93.7\% of
-variance and causes the smallest loss.  RP ($d\!=\!8$, $-4.1\%$) operates at
+relative to the 12-d raw baseline ($\RawFscore$), and the degradation is strictly
+ordered by compression severity.  PCA ($d\!=\!8$, $-\PcaDegradPct\%$) retains $\WinePcaVarRetained$\% of
+variance and causes the smallest loss.  RP ($d\!=\!8$, $-\RpDegradPct\%$) operates at
 the same dimensionality but without variance-optimized axes, discarding more
-discriminative signal per dimension retained.  ICA ($d\!=\!4$, $-6.5\%$)
+discriminative signal per dimension retained.  ICA ($d\!=\!4$, $-\IcaDegradPct\%$)
 applies the most aggressive compression and produces the largest drop.
 
 The learning curves in Fig.~\ref{fig:learning_curves} rule out slower
@@ -554,21 +549,21 @@ measurement carries distinct discriminative information, and removing any of the
 has a measurable cost.
 
 \textbf{Speed.}  Measured over 10 seeds at 20 epochs, reduced-input variants
-complete in 0.26--0.27\,s mean (PCA/ICA/RP).  The raw 12-d baseline averages
-0.42\,s, though this figure is inflated by PyTorch's one-time JIT compilation
+complete in $\ReducedTimingLo$--$\ReducedTimingHi$\,s mean (PCA/ICA/RP).  The raw 12-d baseline averages
+$\RawTimingS$\,s, though this figure is inflated by PyTorch's one-time JIT compilation
 cost incurred on the first forward pass of the run; after warmup the per-epoch
 difference is $\sim$2--3\,ms.  Wine's training set (3{,}897 samples,
 $\sim$30 batches per epoch) is small enough that per-dimension matrix
 multiplication cost is swamped by Python interpreter and data-loading overhead.
 A speed benefit from dimensionality reduction would be more pronounced on
 larger datasets such as Adult, where the 104-to-22 compression reduces the
-input layer computation by roughly $4.7\times$.
+input layer computation by roughly $\AdultCompRatioX\times$.
 
 \subsection{Step 5 --- Cluster-Derived Feature Augmentation}
 
 All three augmentation variants in Table~\ref{tab:phase6} exceed the raw
 baseline, with the open-question resolving in favor of the hypothesis.  KMeans
-one-hot (14d, mean F1\,=\,0.339, $+2.9\%$) provides the largest and most
+one-hot ($\KMeansOnehotDim$d, mean F1\,=\,$\KMeansOnehotFscore$, $+\KMeansOnehotGainPct\%$) provides the largest and most
 stable gain.  The $K\!=\!2$ assignment encodes exactly the red/white partition
 identified by KMeans in Step 1 and visualized in the t-SNE plots: it tells the
 network which macro-cluster a sample belongs to, solving a structural
@@ -576,10 +571,10 @@ partitioning problem that would otherwise consume hidden-layer capacity.  With
 that routing signal explicit, the network can devote its full representational
 budget to resolving the fine-grained quality boundaries within each island.
 
-GMM posterior (19d, $+1.3\%$) also improves performance but with higher seed
+GMM posterior ($\GmmPostDim$d, $+\GmmPostGainPct\%$) also improves performance but with higher seed
 variance, because soft responsibilities from seven overlapping components blend
 information from multiple regions of the feature space and do not provide a
-crisp partition signal.  KMeans distances (14d, $+0.5\%$) produce the weakest
+crisp partition signal.  KMeans distances ($\KMeansDistDim$d, $+\KMeansDistGainPct\%$) produce the weakest
 improvement: Euclidean distances to two centroids are highly collinear with the
 original physicochemical features, adding little novel structural information
 beyond what the raw 12 dimensions already encode.
@@ -593,38 +588,35 @@ not make explicit.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Extra Credit: t-SNE Visualization}
 
-\begin{figure*}[t]
+\begin{figure}[t]
   \centering
-  \begin{subfigure}{0.235\textwidth}
+  \begin{subfigure}{0.48\linewidth}
     \includegraphics[width=\linewidth]{phase7_tsne/wine_tsne_labels}
     \caption{Wine, quality labels}
   \end{subfigure}
   \hfill
-  \begin{subfigure}{0.235\textwidth}
+  \begin{subfigure}{0.48\linewidth}
     \includegraphics[width=\linewidth]{phase7_tsne/wine_tsne_clusters}
     \caption{Wine, KMeans ($K\!=\!2$)}
   \end{subfigure}
-  \hfill
-  \begin{subfigure}{0.235\textwidth}
+  \\[2pt]
+  \begin{subfigure}{0.48\linewidth}
     \includegraphics[width=\linewidth]{phase7_tsne/adult_tsne_labels}
     \caption{Adult, class labels}
   \end{subfigure}
   \hfill
-  \begin{subfigure}{0.235\textwidth}
+  \begin{subfigure}{0.48\linewidth}
     \includegraphics[width=\linewidth]{phase7_tsne/adult_tsne_clusters}
     \caption{Adult, KMeans ($K\!=\!8$)}
   \end{subfigure}
   \caption{t-SNE embeddings (perplexity\,=\,30, seed\,=\,42).
   Inter-cluster distances are not interpretable quantitatively.
-  \textbf{Takeaway:} Wine (a, b) separates into two dense islands that
-  KMeans $K\!=\!2$ identifies cleanly; quality labels are thoroughly mixed
-  within each island --- visually confirming why DR hurts the NN (quality signal
-  is diffuse across both clusters) and why KMeans one-hot helps (the
-  macro-split is a clean, high-purity feature).  Adult (c, d) forms a single
-  continuous manifold with no visible boundaries, explaining both the low raw
-  silhouette and why PCA denoising is needed to expose latent cluster structure.}
+  \textbf{Takeaway:} Wine (a,\,b) separates into two dense islands cleanly
+  recovered by KMeans $K\!=\!2$; quality labels are thoroughly mixed within
+  each island.  Adult (c,\,d) forms a single continuous manifold with no
+  visible cluster boundaries.}
   \label{fig:tsne}
-\end{figure*}
+\end{figure}
 
 t-SNE~\cite{vandermaaten2008} was applied to both training sets for qualitative
 visualization only; embeddings are not used as feature inputs to any downstream
@@ -645,15 +637,15 @@ Euclidean distances.
 \section{Conclusion}
 
 The experiments confirm the hypothesis directionally across all five steps.
-PCA improved Adult K-Means cluster quality by $23\%$ while Wine gained only
-$4.7\%$, with the difference explained by Adult's $4.7\!\times$ compression
-ratio versus Wine's $1.5\!\times$.  On Wine, every DR method degraded Macro-F1
+PCA improved Adult K-Means cluster quality by $\AdultKMPcaGainPct\%$ while Wine gained only
+$\WineKMPcaGainPct\%$, with the difference explained by Adult's $\AdultCompRatioX\!\times$ compression
+ratio versus Wine's $\WineCompRatioX\!\times$.  On Wine, every DR method degraded Macro-F1
 in strict proportion to compression severity, confirming that Wine's 12 features
 are compact and non-redundant.  Cluster-derived feature augmentation reversed
 this trend: all three variants exceeded the raw baseline by encoding the latent
 red/white partition that linear projections cannot make explicit.
 
-The most unexpected result was Wine GMM under ICA ($+463\%$ silhouette), which
+The most unexpected result was Wine GMM under ICA ($+\WineGmmIcaGainPct\%$ silhouette), which
 shows that the choice of DR method matters beyond compression efficiency.  ICA's
 independence-maximizing projection amplifies non-Gaussian mixture structure that
 PCA's variance-maximizing axes suppress.  When the downstream task is GMM
