@@ -41,6 +41,18 @@ Items identified by post-submission assessment (`assement.txt`), ordered by prio
 - [x] **R6 — Algorithm improvement suggestions** ✓ 2026-03-24
   Added paragraph to Conclusion: cosine distance for Adult KMeans, reduce Wine GMM K toward 2–3.
 
+- [ ] **T1 — Review NN training hyperparameters (NEW)**
+  Review `src/supervised/training.py` and confirm canonical training defaults (Adam lr, betas,
+  weight_decay, train/val batch sizes, max epochs, hidden dim). If `training.py` is absent or
+  incomplete, document canonical defaults from `src/config.py` and add a short entry to
+  `documents/faq.md` describing these defaults for the report methods section.
+
+- [ ] **T2 — Phase 4 heatmap LaTeX layout (NEW)**
+  Change Phase 4 heatmap layout used in the report to be wide-and-short (landscape-style)
+  and arrange heatmap figures stacked vertically (one below the other). Update the LaTeX
+  figure include or wrapper in the report template so the stacked, wide heatmaps render
+  correctly in Overleaf.
+
 ### 🟢 Minor (polish)
 
 - [x] **R7 — ICA median-kurtosis threshold justification** ✓ 2026-03-24

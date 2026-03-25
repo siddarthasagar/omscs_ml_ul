@@ -395,11 +395,23 @@ information, whereas Wine's errors remain low even at aggressive compression.
 The stability bands in both plots confirm that the specific random matrix
 realization does not materially affect the preserved geometry at the selected
 target dimensions.  Target dimension for RP is deliberately matched to the PCA
-selection ($d\!=\!8$ for Wine, $d\!=\!22$ for Adult) to hold $d$ constant
+selection ($d\!=\!\WinePcaNComp$ for Wine, $d\!=\!\AdultPcaNComp$ for Adult) to hold $d$ constant
 across methods, enabling a fair downstream comparison in Steps~3 and~4; RP's
 Johnson-Lindenstrauss bound could in principle suggest a different optimal $d$,
 but fixing it to PCA's isolates the effect of projection type rather than
 dimensionality.
+
+\textbf{Effective rank and noise sensitivity.}  The PCA spectra imply an
+effective rank of $\sim\!\WinePcaNComp$ for Wine and $\sim\!\AdultPcaNComp$ for Adult: singular
+values below those thresholds are near zero, indicating that remaining
+variance is noise rather than signal.  This has a direct consequence for the
+three DR methods: PCA explicitly discards the noise subspace, so its
+reconstruction is denoised; ICA operates in the pre-whitened (PCA-reduced)
+space and is therefore equally insulated from low-variance noise; RP projects
+into a random subspace of the same target dimension, which preserves pairwise
+distances in expectation but does not separate signal from noise dimensions,
+making it more susceptible to noise contamination when the noise subspace is
+large relative to the signal subspace.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Step 3: Clustering in Reduced Spaces}
@@ -652,6 +664,15 @@ PCA's variance-maximizing axes suppress.  When the downstream task is GMM
 clustering, which also assumes a mixture model, the alignment between DR
 objective and clusterer geometry provides a decisive advantage over generic
 variance-based projection.
+
+The contrasting outcomes across datasets confirm that dataset geometry shapes
+results more than algorithm choice alone: Wine's compact $\WinePcaNComp$-dimensional
+structure made every method effective, while Adult's sparse $\AdultPcaNComp$-dimensional
+OHE space suppressed silhouette scores and muted DR gains regardless of which
+algorithm was applied.  Choosing datasets with very different intrinsic
+dimensionality was therefore essential to testing the hypothesis; a pair of
+equally compact datasets would have obscured the compression-ratio effect
+entirely.
 
 Two concrete algorithmic improvements would strengthen future iterations.  For
 K-Means on Adult, replacing Euclidean distance with cosine similarity would

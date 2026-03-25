@@ -297,4 +297,23 @@ The "output" of Phase 7 is visual insight read from the scatter plots — do qua
 
 ---
 
+## NN Training Defaults
+
+### Q: What are the canonical neural network training hyperparameters and where are they defined?
+
+**A: All canonical NN training defaults are defined in `src/config.py` and are used by `src/supervised/training.py`.**
+
+- `NN_LR = 1e-3` (Adam learning rate)
+- `NN_BETAS = (0.9, 0.999)` (Adam betas)
+- `NN_WEIGHT_DECAY = 0.0` (L2 regularization)
+- `NN_TRAIN_BATCH_SIZE = 128`
+- `NN_VAL_BATCH_SIZE = 256`
+- `NN_MAX_EPOCHS = 20`
+- `NN_HIDDEN_DIM = 100` (width of the hidden layer in the baseline MLP)
+
+`src/supervised/training.py` imports these constants and constructs the optimizer and dataloaders from them. The training loop uses `torch.optim.Adam` with the above hyperparameters and `nn.CrossEntropyLoss` as the criterion. The baseline architecture used in Phase 5 is `Linear(input_dim, 100) -> ReLU -> Linear(100, 8)` provided by `src/supervised/nn_baseline.py`.
+
+Notes:
+- The training helper currently forces `device = torch.device("cpu")` (no GPU path) and does not itself wire `configure_logger(run_id)`. Per project rules, phase orchestration scripts should call `configure_logger(run_id)` before invoking training utilities so that runs are logged consistently.
+- The TODO `T1` in `documents/TODO.md` requests an explicit review of `src/supervised/training.py`; this FAQ entry documents the canonical defaults so the methods section in the report can cite them.
 
