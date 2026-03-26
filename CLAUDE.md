@@ -48,8 +48,7 @@ documents/faq.md                       — methodological Q&A
 ### Reference (read-only)
 documents/canvas/assignment/md/UL_Report_Spring_2026_v2.md
 documents/canvas/assignment/md/UL_Report_Spring_2026_FAQ_v2.md
-documents/REPORT_OL/OL_Report_schinne3.tex
-/Users/siddarthasagarchinne/github/omscs_ml_ol  (prior OL repo)
+~/github/overleaf_omscs_ml/OL  (OL report — live Overleaf copy, use this for reference)
 
 ### Archive (stale — do not use)
 documents/_archive/                    — old monolithic spec files
