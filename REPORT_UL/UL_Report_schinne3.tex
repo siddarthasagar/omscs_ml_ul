@@ -101,7 +101,7 @@ Adult expands to 104 dimensions after one-hot encoding and contains known
 collinear feature groups --- \texttt{education} and \texttt{education-num}
 encode the same ordinal information redundantly --- while its decision boundary
 is nearly linear (only a 1.7\% gap between logistic regression and random
-forest)~\cite{kohavi1996}.  From these observations we predict: PCA will
+forest).  From these observations we predict: PCA will
 produce a larger relative improvement in cluster quality on Adult than on Wine,
 because Adult has genuine redundancy that compression can remove, while Wine's
 compact 12-dimensional representation has no such slack.  For the Wine neural
@@ -115,7 +115,7 @@ methods is an open question entering the experiments.
 
 \subsection{Adult Income}
 
-The Adult Census dataset~\cite{kohavi1996} contains 45{,}222 samples with 6
+The Adult Census dataset contains 45{,}222 samples with 6
 numeric and 8 categorical features, expanding to 104 dimensions after one-hot
 encoding with a 3:1 class imbalance ($\leq$50K vs.\ $>$50K); we use binary F1
 as the primary metric.  A linearity proxy confirms a near-linear decision
@@ -127,7 +127,7 @@ many low-variance directions to discard.
 
 \subsection{Wine Quality}
 
-The combined red/white Wine dataset~\cite{cortez2009} contains 6{,}497 samples
+The combined red/white Wine dataset contains 6{,}497 samples
 with 12 continuous physicochemical features and 8 quality classes (ratings 3--9);
 we use Macro-F1 as the primary metric.  Compared to the OL assignment, this
 report retains the binary \texttt{type} indicator (red vs.\ white), increasing
@@ -151,7 +151,7 @@ labels.  GMM/EM~\cite{dempster1977} models the data as a mixture of Gaussian
 components estimated via the Expectation-Maximization algorithm; it supports
 elliptical, overlapping clusters and yields soft posterior probabilities.  We
 use diagonal covariance with $\text{reg\_covar}=10^{-3}$ to prevent singularity
-in Adult's sparse OHE space, and select component count by minimizing BIC.
+in Adult's sparse OHE space, and select component count by minimizing BIC~\cite{schwarz1978}.
 
 \subsection{Dimensionality Reduction}
 
@@ -160,15 +160,15 @@ number of components that cumulatively explain $\geq 90\%$ of variance.
 ICA~\cite{hyvarinen2000} seeks statistically independent, non-Gaussian sources
 via FastICA with PCA whitening; component count is set to the number of
 components whose absolute kurtosis exceeds the median (minimum 2).  Random
-Projection~\cite{jl1984} multiplies by a random Gaussian matrix, approximately
-preserving pairwise Euclidean distances by the Johnson-Lindenstrauss lemma; we
+Projection multiplies by a sparse random matrix, approximately
+preserving pairwise Euclidean distances by the Johnson-Lindenstrauss lemma~\cite{jl1984}; we
 match RP's target dimension to the PCA selection and sweep 10 random seeds to
 characterize stability.
 
 \subsection{Neural Network}
 
 All NN experiments use the same architecture from the OL report: one hidden
-layer of 100 ReLU units, cross-entropy loss, Adam optimizer
+layer of 100 ReLU units, cross-entropy loss, Adam optimizer~\cite{kingma2015}
 ($\text{lr}=10^{-3}$, $\beta_1=0.9$, $\beta_2=0.999$), batch size 128, 20
 epochs, 10 seeds (42--51).  The input dimension varies across variants; all
 other hyperparameters are fixed, isolating the effect of the input
@@ -687,36 +687,42 @@ likely improving hard-assignment silhouette at the cost of BIC log-likelihood.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{thebibliography}{9}
 
-\bibitem{kohavi1996}
-R.~Kohavi, ``Scaling up the accuracy of naive-Bayes classifiers: A
-decision-tree hybrid,'' in \emph{Proc. 2nd Int. Conf. Knowledge Discovery and
-Data Mining (KDD)}, Portland, OR, 1996, pp.~202--207.
+\bibitem{lloyd1982}
+S.~P.~Lloyd, ``Least squares quantization in PCM,'' \emph{IEEE Trans.\ Inf.\
+Theory}, vol.~28, no.~2, pp.~129--137, 1982.
+\url{https://doi.org/10.1109/TIT.1982.1056489}
 
-\bibitem{cortez2009}
-P.~Cortez, A.~Cerdeira, F.~Almeida, T.~Matos, and J.~Reis, ``Modeling wine
-preferences by data mining from physicochemical properties,'' \emph{Decision
-Support Syst.}, vol.~47, no.~4, pp.~547--553, 2009.
+\bibitem{dempster1977}
+A.~P.~Dempster, N.~M.~Laird, and D.~B.~Rubin, ``Maximum likelihood from
+incomplete data via the EM algorithm,'' \emph{J.\ Royal Statist.\ Soc.\ Series
+B}, vol.~39, no.~1, pp.~1--38, 1977.
+\url{https://doi.org/10.1111/j.2517-6161.1977.tb01600.x}
+
+\bibitem{schwarz1978}
+G.~Schwarz, ``Estimating the dimension of a model,'' \emph{Ann.\ Statist.},
+vol.~6, no.~2, pp.~461--464, 1978.
+\url{https://doi.org/10.1214/aos/1176344136}
 
 \bibitem{hyvarinen2000}
 A.~Hyv{\"a}rinen and E.~Oja, ``Independent component analysis: Algorithms and
 applications,'' \emph{Neural Networks}, vol.~13, no.~4--5, pp.~411--430, 2000.
-
-\bibitem{dempster1977}
-A.~P.~Dempster, N.~M.~Laird, and D.~B.~Rubin, ``Maximum likelihood from
-incomplete data via the EM algorithm,'' \emph{J. Royal Statistical Soc. Series
-B}, vol.~39, no.~1, pp.~1--38, 1977.
+\url{https://doi.org/10.1016/S0893-6080(00)00026-5}
 
 \bibitem{jl1984}
 W.~B.~Johnson and J.~Lindenstrauss, ``Extensions of Lipschitz mappings into a
-Hilbert space,'' \emph{Contemporary Mathematics}, vol.~26, pp.~189--206, 1984.
+Hilbert space,'' \emph{Contemp.\ Math.}, vol.~26, pp.~189--206, 1984.
+\url{https://doi.org/10.1090/conm/026/737400}
 
-\bibitem{lloyd1982}
-S.~P.~Lloyd, ``Least squares quantization in PCM,'' \emph{IEEE Trans. Inf.
-Theory}, vol.~28, no.~2, pp.~129--137, 1982.
+\bibitem{kingma2015}
+D.~P.~Kingma and J.~Ba, ``Adam: A method for stochastic optimization,'' in
+\emph{Proc.\ 3rd Int.\ Conf.\ Learning Representations (ICLR)}, San Diego,
+CA, 2015.
+\url{https://arxiv.org/abs/1412.6980}
 
 \bibitem{vandermaaten2008}
 L.~van der Maaten and G.~Hinton, ``Visualizing data using {t-SNE},''
-\emph{J. Machine Learning Research}, vol.~9, pp.~2579--2605, 2008.
+\emph{J.\ Machine Learning Research}, vol.~9, pp.~2579--2605, 2008.
+\url{https://jmlr.org/papers/v9/vandermaaten08a.html}
 
 \end{thebibliography}
 
