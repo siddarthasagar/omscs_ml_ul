@@ -1,0 +1,176 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%        REPRO UL — Reproducibility Sheet
+%        CS7641 Machine Learning — Spring 2026
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[letterpaper, 11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{booktabs}
+\usepackage{hyperref}
+
+\title{REPRO UL --- Reproducibility Sheet\\[4pt]
+\large Unsupervised Learning and Dimensionality Reduction:\\
+Clustering, Projection, and Neural Network Analysis\\
+on Adult Income and Wine Quality}
+
+\author{Siddartha Sagar Chinne \\ \texttt{schinne3@gatech.edu}}
+\date{}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+\pagestyle{empty}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Overleaf Read-Only Link}
+
+\begin{center}
+\url{https://www.overleaf.com/read/mshbkmwnhqry#d8611b}
+\end{center}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{GitHub Commit Hash}
+
+\begin{center}
+\texttt{6fece62f2be09ec129d4f86b76299b2cfdde6224}
+\end{center}
+
+Repository layout:
+
+\medskip
+\begin{center}
+\begin{tabular}{@{}ll@{}}
+\toprule
+Path & Purpose \\
+\midrule
+\texttt{src/}                        & Data loaders, clustering, DR, NN, utilities \\
+\texttt{scripts/}                    & Phase entrypoints (run\_phase\_\{2--8\}\_*.py) \\
+\texttt{data/}                       & adult.csv, wine.csv (raw datasets) \\
+\texttt{artifacts/metrics/}          & Per-phase CSV metric outputs \\
+\texttt{artifacts/figures/}          & Generated plots \\
+\texttt{artifacts/metadata/}         & Per-phase JSON frozen decisions and scalars \\
+\texttt{artifacts/tables/}           & LaTeX table bodies + report\_numbers.tex \\
+\texttt{REPORT\_UL/}                 & LaTeX report source and compiled PDF \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Reproduction Instructions}
+
+\subsection{Prerequisites}
+
+\begin{itemize}
+\item \textbf{OS:} Linux (tested on Ubuntu 22.04+) or macOS (tested on arm64).
+\item \textbf{Python:} $\geq$ 3.13 (managed via \texttt{uv}).
+\item \textbf{uv:} Install from \url{https://docs.astral.sh/uv/getting-started/installation/}.
+\item \textbf{Make:} GNU Make (standard on Linux).
+\item \textbf{Hardware:} CPU-only; no GPU required. Total wall-clock for the full pipeline: $\sim$35 minutes on a 10-core Apple M1 Pro (NN phases dominate: 40 runs $\times$ Phase 5 + 30 runs $\times$ Phase 6).
+\end{itemize}
+
+Key Python dependencies (pinned in \texttt{pyproject.toml}):
+\texttt{torch}~$\geq$~2.10,
+\texttt{scikit-learn}~$\geq$~1.8,
+\texttt{pandas}~$\geq$~3.0,
+\texttt{numpy}~$\geq$~2.4,
+\texttt{matplotlib}~$\geq$~3.10,
+\texttt{seaborn}~$\geq$~0.13,
+and \texttt{imbalanced-learn}~$\geq$~0.14.
+
+\subsection{One-Command Reproduction}
+
+After cloning and checking out the commit above:
+
+\begin{verbatim}
+make dev          # Create venv, install all dependencies
+make pipeline     # Run full pipeline: phases 2 -> analysis -> 3 -> 4
+                  #                    -> 5 -> 6 -> 7 -> 8
+\end{verbatim}
+
+\texttt{make pipeline} runs the complete experiment sequence:
+
+\begin{enumerate}
+\item \textbf{Phase 2} --- K-Means and GMM sweep (k/n = 2--20) on both datasets; saves 4 CSVs + 4 PNGs.
+\item \textbf{analysis} --- K-selection report; ARI at frozen K; emits \texttt{artifacts/metadata/phase2.json}.
+\item \textbf{Phase 3} --- PCA, ICA, RP on both datasets; selects \texttt{n\_components}; saves 6 CSVs + 6 PNGs + \texttt{phase3.json}.
+\item \textbf{Phase 4} --- Clustering in all 12 reduced spaces; summary table + heatmap + \texttt{phase4.json}.
+\item \textbf{Phase 5} --- Wine NN on raw + PCA + ICA + RP inputs; 10 seeds (42--51); 2 figures + \texttt{phase5.json}.
+\item \textbf{Phase 6} --- Wine NN with cluster-derived features (KMeans one-hot, distances, GMM posteriors); 10 seeds; 1 figure + \texttt{phase6.json}.
+\item \textbf{Phase 7} --- t-SNE visualisations for both datasets (label and cluster coloring); 4 PNGs.
+\item \textbf{Phase 8} --- Generates all LaTeX table bodies and 65-macro \texttt{report\_numbers.tex}.
+\end{enumerate}
+
+\subsection{Step-by-Step Reproduction}
+
+Each phase can also be run individually:
+
+\begin{verbatim}
+make phase2       # Clustering sweep
+make analysis     # K-selection report + phase2.json
+make phase3       # Dimensionality reduction
+make phase4       # Reduced-space clustering
+make phase5       # NN on reduced inputs (Wine, 10 seeds)
+make phase6       # NN with cluster features (Wine, 10 seeds)
+make phase7       # t-SNE visualisations (extra credit)
+make phase8       # Report table generation
+\end{verbatim}
+
+\subsection{Verification}
+
+After reproduction, verify:
+
+\begin{itemize}
+\item \texttt{artifacts/metrics/phase2\_clustering/} contains 5 CSV files (4 sweep + 1 ARI).
+\item \texttt{artifacts/metrics/phase4\_clustering/summary\_table.csv} contains 12 rows (2 clusterers $\times$ 3 DR methods $\times$ 2 datasets).
+\item \texttt{artifacts/metadata/} contains \texttt{phase2.json} through \texttt{phase6.json} (5 files).
+\item \texttt{artifacts/tables/report\_numbers.tex} defines exactly 65 \texttt{\textbackslash newcommand} macros.
+\item \texttt{artifacts/figures/} contains 13 PNG files across phases 2--7.
+\end{itemize}
+
+\subsection{Random Seeds}
+
+All stochastic components use explicit seeds.
+\texttt{SEED\_EXPLORE = 42} is used for all single-run experiments (clustering sweeps, DR, t-SNE).
+\texttt{SEEDS\_REPORT = [42, 43, \ldots, 51]} (10 seeds) are used for all NN experiments (Phases 5 and 6).
+Seeds are defined in \texttt{src/config.py} and passed explicitly to every \texttt{random\_state} and \texttt{torch.manual\_seed} call.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{EDA Summary Confirmation}
+
+Both datasets are identical to those used in the SL and OL Reports. Preprocessing and leakage controls are unchanged from the OL Report. Two explicit disclosures are noted below.
+
+\subsection{Adult Income (Census Income)}
+
+\begin{itemize}
+\item \textbf{Source:} UCI Machine Learning Repository~[Kohavi, 1996].
+\item \textbf{Samples:} 45,222 (after standard cleaning).
+\item \textbf{Features:} 6 numeric + 8 categorical $\rightarrow$ 104 dimensions after one-hot encoding (no column dropping).
+\item \textbf{Target:} Binary (income $\leq$50K vs.\ $>$50K); 3:1 class imbalance (75.2\% majority).
+\item \textbf{Primary metric:} Macro-F1.
+\item \textbf{Preprocessing:} StandardScaler on numeric features (fit on train only);
+  \texttt{OneHotEncoder(\allowbreak handle\_unknown=\allowbreak"ignore")} on categoricals. No imputation needed.
+\item \textbf{Split:} 60/20/20 stratified (train: $\sim$27K, val: $\sim$9K, test: $\sim$9K; \texttt{random\_state=42}).
+\item \textbf{Clustering:} KMeans silhouette~$=0.114$, GMM silhouette~$=0.058$ at frozen K values (k=8, n=7).
+\item \textbf{Effective rank:} $\sim$22 PCA components retain $\geq$90\% cumulative variance (PC1 explains 15.3\%).
+\end{itemize}
+
+\subsection{Wine Quality (Red + White)}
+
+\begin{itemize}
+\item \textbf{Source:} UCI Machine Learning Repository~[Cortez et al., 2009].
+\item \textbf{Samples:} 6,497 (combined red + white).
+\item \textbf{Features:} 12 (11 continuous physicochemical + binary \texttt{type} indicator).
+\item \textbf{Target:} 8-class (quality ratings 3--9); severe class overlap (silhouette~$= -0.074$).
+\item \textbf{Primary metric:} Macro-F1.
+\item \textbf{Leakage control:} Removed \texttt{quality} (exact copy of target) and \texttt{class} columns.
+\item \textbf{Preprocessing:} StandardScaler (fit on train only). No imputation needed.
+\item \textbf{Split:} 60/20/20 stratified (\texttt{random\_state=42}).
+\item \textbf{Clustering:} KMeans silhouette~$=0.340$, GMM silhouette~$=0.040$ at frozen K values (k=2, n=7).
+\item \textbf{Effective rank:} $\sim$8 PCA components retain $\geq$90\% cumulative variance (PC1 explains 31.9\%).
+\end{itemize}
+
+\end{document}
