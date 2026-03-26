@@ -142,8 +142,8 @@ You may submit the assignment as many times as you wish up to the due date, but 
 
 You will submit **two PDFs**:
 
-1. `UL Report {GTusername}.pdf` — your report (Overleaf).
-2. `REPRO UL {GTusername}.pdf` — your reproducibility sheet, which must include:
+1. `UL_Report_{GTusername}.pdf` — your report (Overleaf).
+2. `REPRO_UL_{GTusername}.pdf` — your reproducibility sheet, which must include:
    - A READ-ONLY link to your Overleaf project.
    - A GitHub commit hash (single SHA) from the final push of your code.
    - Exact run instructions to reproduce results on a standard Linux machine (environment setup, commands, data paths, and random seeds).
