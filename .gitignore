@@ -21,3 +21,4 @@ artifacts
 **/*.synctex.gz
 **/*.fls
 **/*.fdb_latexmk
+**/PineTools_splits
