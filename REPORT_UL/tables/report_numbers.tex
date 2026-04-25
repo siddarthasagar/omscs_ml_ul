@@ -30,28 +30,40 @@
 \newcommand{\AdultCompRatioX}{4.7}  % adult compression ratio (fold)
 \newcommand{\WineCompRatioX}{1.5}  % wine compression ratio (fold)
 % Phase 4 — clustering in reduced spaces
+\newcommand{\WinePcaReducedKmK}{2}  % wine_pca reduced KMeans K
+\newcommand{\WinePcaReducedGmmN}{10}  % wine_pca reduced GMM n
+\newcommand{\WineIcaReducedKmK}{4}  % wine_ica reduced KMeans K
+\newcommand{\WineIcaReducedGmmN}{9}  % wine_ica reduced GMM n
+\newcommand{\WineRpReducedKmK}{3}  % wine_rp reduced KMeans K
+\newcommand{\WineRpReducedGmmN}{12}  % wine_rp reduced GMM n
+\newcommand{\AdultPcaReducedKmK}{5}  % adult_pca reduced KMeans K
+\newcommand{\AdultPcaReducedGmmN}{20}  % adult_pca reduced GMM n
+\newcommand{\AdultIcaReducedKmK}{18}  % adult_ica reduced KMeans K
+\newcommand{\AdultIcaReducedGmmN}{20}  % adult_ica reduced GMM n
+\newcommand{\AdultRpReducedKmK}{10}  % adult_rp reduced KMeans K
+\newcommand{\AdultRpReducedGmmN}{19}  % adult_rp reduced GMM n
 \newcommand{\WineKMPcaSil}{0.356}  % wine KMeans PCA silhouette
-\newcommand{\WineKMIcaSil}{0.194}  % wine KMeans ICA silhouette
-\newcommand{\WineKMRpSil}{0.260}  % wine KMeans RP silhouette
-\newcommand{\WineGmmPcaSil}{0.112}  % wine GMM PCA silhouette
-\newcommand{\WineGmmIcaSil}{0.225}  % wine GMM ICA silhouette
-\newcommand{\AdultKMPcaSil}{0.140}  % adult KMeans PCA silhouette
-\newcommand{\AdultKMIcaSil}{0.138}  % adult KMeans ICA silhouette
-\newcommand{\AdultKMRpSil}{0.139}  % adult KMeans RP silhouette
-\newcommand{\AdultGmmPcaSil}{0.105}  % adult GMM PCA silhouette
-\newcommand{\AdultGmmIcaSil}{0.121}  % adult GMM ICA silhouette
-\newcommand{\AdultGmmRpSil}{0.038}  % adult GMM RP silhouette
+\newcommand{\WineKMIcaSil}{0.307}  % wine KMeans ICA silhouette
+\newcommand{\WineKMRpSil}{0.264}  % wine KMeans RP silhouette
+\newcommand{\WineGmmPcaSil}{0.094}  % wine GMM PCA silhouette
+\newcommand{\WineGmmIcaSil}{0.186}  % wine GMM ICA silhouette
+\newcommand{\AdultKMPcaSil}{0.141}  % adult KMeans PCA silhouette
+\newcommand{\AdultKMIcaSil}{0.158}  % adult KMeans ICA silhouette
+\newcommand{\AdultKMRpSil}{0.164}  % adult KMeans RP silhouette
+\newcommand{\AdultGmmPcaSil}{0.048}  % adult GMM PCA silhouette
+\newcommand{\AdultGmmIcaSil}{0.128}  % adult GMM ICA silhouette
+\newcommand{\AdultGmmRpSil}{-0.018}  % adult GMM RP silhouette
 \newcommand{\WineKMPcaGainPct}{4.7}  % wine KMeans: % sil gain PCA vs raw
-\newcommand{\AdultKMPcaGainPct}{23}  % adult KMeans: % sil gain PCA vs raw
-\newcommand{\WineGmmIcaGainPct}{463}  % wine GMM: % sil gain ICA vs raw
-\newcommand{\WineGmmPcaGainPct}{180}  % wine GMM: % sil gain PCA vs raw
-\newcommand{\AdultGmmIcaGainPct}{109}  % adult GMM: % sil gain ICA vs raw
-\newcommand{\AdultGmmPcaGainPct}{81}  % adult GMM: % sil gain PCA vs raw
+\newcommand{\AdultKMPcaGainPct}{24}  % adult KMeans: % sil gain PCA vs raw
+\newcommand{\WineGmmIcaGainPct}{365}  % wine GMM: % sil gain ICA vs raw
+\newcommand{\WineGmmPcaGainPct}{135}  % wine GMM: % sil gain PCA vs raw
+\newcommand{\AdultGmmIcaGainPct}{121}  % adult GMM: % sil gain ICA vs raw
+\newcommand{\AdultGmmPcaGainPct}{-17}  % adult GMM: % sil gain PCA vs raw
 \newcommand{\WineKMPcaAri}{0.998}  % wine KMeans+PCA raw-vs-reduced ARI
-\newcommand{\WineKMIcaAri}{-0.010}  % wine KMeans+ICA raw-vs-reduced ARI
-\newcommand{\AdultKMPcaAri}{0.804}  % adult KMeans+PCA raw-vs-reduced ARI
-\newcommand{\GmmAriMin}{0.24}  % min GMM raw-vs-reduced ARI across all combos
-\newcommand{\GmmAriMax}{0.50}  % max GMM raw-vs-reduced ARI across all combos
+\newcommand{\WineKMIcaAri}{0.399}  % wine KMeans+ICA raw-vs-reduced ARI
+\newcommand{\AdultKMPcaAri}{0.555}  % adult KMeans+PCA raw-vs-reduced ARI
+\newcommand{\GmmAriMin}{0.18}  % min GMM raw-vs-reduced ARI across all combos
+\newcommand{\GmmAriMax}{0.37}  % max GMM raw-vs-reduced ARI across all combos
 % Phase 5 — NN on DR-reduced inputs
 \newcommand{\RawFscore}{0.329}  % raw variant mean val F1
 \newcommand{\PcaFscore}{0.321}  % PCA variant mean val F1
@@ -59,17 +71,20 @@
 \newcommand{\RpFscore}{0.315}  % RP variant mean val F1
 \newcommand{\PcaDegradPct}{2.5}  % PCA F1 degradation vs raw %
 \newcommand{\RpDegradPct}{4.1}  % RP F1 degradation vs raw %
-\newcommand{\IcaDegradPct}{6.4}  % ICA F1 degradation vs raw %
-\newcommand{\RawTimingS}{0.32}  % raw mean training time seconds
+\newcommand{\IcaDegradPct}{6.5}  % ICA F1 degradation vs raw %
+\newcommand{\RawTimingS}{0.70}  % raw mean training time seconds
 \newcommand{\ReducedTimingLo}{0.24}  % min reduced-variant mean training time
 \newcommand{\ReducedTimingHi}{0.24}  % max reduced-variant mean training time
 % Phase 6 — NN with cluster-derived features
 \newcommand{\KMeansOnehotFscore}{0.339}  % kmeans_onehot mean F1
 \newcommand{\KMeansOnehotDim}{14}  % kmeans_onehot input dim
 \newcommand{\KMeansOnehotGainPct}{2.9}  % kmeans_onehot gain vs raw %
+\newcommand{\KMeansOnehotTimingS}{0.28}  % kmeans_onehot mean train time (s)
 \newcommand{\KMeansDistFscore}{0.331}  % kmeans_dist mean F1
 \newcommand{\KMeansDistDim}{14}  % kmeans_dist input dim
 \newcommand{\KMeansDistGainPct}{0.5}  % kmeans_dist gain vs raw %
+\newcommand{\KMeansDistTimingS}{0.24}  % kmeans_dist mean train time (s)
 \newcommand{\GmmPostFscore}{0.333}  % gmm_posterior mean F1
 \newcommand{\GmmPostDim}{19}  % gmm_posterior input dim
 \newcommand{\GmmPostGainPct}{1.3}  % gmm_posterior gain vs raw %
+\newcommand{\GmmPostTimingS}{0.25}  % gmm_posterior mean train time (s)

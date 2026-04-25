@@ -223,9 +223,12 @@ def emit_phase5_table(log) -> Path:
 def emit_phase6_table(log) -> Path:
     p6 = pd.read_csv(METRICS / "phase6_nn_cluster" / "comparison_table.csv")
     p5 = pd.read_csv(METRICS / "phase5_nn_reduced" / "comparison_table.csv")
+    meta6 = _load_metadata(6)
+    meta5 = _load_metadata(5)
 
     raw_mean = float(p5[p5["variant"] == "raw"]["val_f1_final"].mean())
     raw_dim = int(p5[p5["variant"] == "raw"]["input_dim"].iloc[0])
+    raw_time = meta5["mean_timing_s"]["raw"]
 
     order = ["raw_baseline", "kmeans_onehot", "kmeans_dist", "gmm_posterior"]
     labels = {
@@ -236,11 +239,10 @@ def emit_phase6_table(log) -> Path:
     }
 
     rows = [
-        "Variant & $d_{\\mathrm{in}}$ & Mean F1 & Std & Min & Max \\\\",
+        "Variant & $d_{\\mathrm{in}}$ & Mean F1 & Std & Min & Max & Time (s) \\\\",
         "\\midrule",
     ]
 
-    # Compute all means first so we can bold above-baseline
     all_means: dict[str, float] = {"raw_baseline": raw_mean}
     for v in ["kmeans_onehot", "kmeans_dist", "gmm_posterior"]:
         all_means[v] = float(p6[p6["variant"] == v]["val_f1_final"].mean())
@@ -250,13 +252,13 @@ def emit_phase6_table(log) -> Path:
             raw_std = float(p5[p5["variant"] == "raw"]["val_f1_final"].std())
             raw_min = float(p5[p5["variant"] == "raw"]["val_f1_final"].min())
             raw_max = float(p5[p5["variant"] == "raw"]["val_f1_final"].max())
-            mean_str = f"{raw_mean:.4f}"
             rows.append(
                 f"{labels[v]} & {raw_dim} "
-                f"& {mean_str} "
+                f"& {raw_mean:.4f} "
                 f"& {raw_std:.4f} "
                 f"& {raw_min:.4f} "
-                f"& {raw_max:.4f} \\\\"
+                f"& {raw_max:.4f} "
+                f"& {raw_time:.2f} \\\\"
             )
             rows.append("\\midrule")
         else:
@@ -266,19 +268,21 @@ def emit_phase6_table(log) -> Path:
             dim = int(p6[p6["variant"] == v]["input_dim"].iloc[0])
             mean_str = f"{s['mean']:.4f}"
             beats = all_means[v] > raw_mean
+            t = meta6["mean_timing_s"][v]
             rows.append(
                 f"{labels[v]} & {dim} "
                 f"& {_bf(mean_str) if beats else mean_str} "
                 f"& {s['std']:.4f} "
                 f"& {s['min']:.4f} "
-                f"& {s['max']:.4f} \\\\"
+                f"& {s['max']:.4f} "
+                f"& {t:.2f} \\\\"
             )
 
     rows.append(
-        "\\multicolumn{6}{l}{\\footnotesize "
-        "10 seeds (42--51). Bold = beats raw baseline.} \\\\"
+        "\\multicolumn{7}{l}{\\footnotesize "
+        "10 seeds (42--51). Bold = beats raw baseline. Time = mean wall-clock (s).} \\\\"
     )
-    tex = _tex_table("lrrrrl", rows)
+    tex = _tex_table("lrrrrrl", rows)
     return _save(tex, "tab_phase6_nn.tex", log)
 
 
@@ -435,6 +439,14 @@ def emit_report_numbers(log) -> Path:
     # ── Phase 4 — clustering in reduced spaces ────────────────────────────────
     lines.append("% Phase 4 — clustering in reduced spaces")
 
+    # Reduced-space K values (re-selected per space, not raw-space frozen K)
+    rk = meta4["reduced_k"]
+    for space, vals in rk.items():
+        ds, dr = space.rsplit("_", 1)
+        prefix = ds.title() + dr.title()  # e.g. "WinePca", "AdultRp"
+        mac(f"{prefix}ReducedKmK", str(vals["kmeans"]), f"{space} reduced KMeans K")
+        mac(f"{prefix}ReducedGmmN", str(vals["gmm"]), f"{space} reduced GMM n")
+
     def p4sil(ds, cl, dr):
         return meta4["silhouette"][f"{ds}_{cl.lower()}_{dr.lower()}"]
 
@@ -585,6 +597,11 @@ def emit_report_numbers(log) -> Path:
             f"{name}GainPct",
             pct((m - raw_f1) / raw_f1 * 100),
             f"{variant} gain vs raw %",
+        )
+        mac(
+            f"{name}TimingS",
+            f"{meta6['mean_timing_s'][variant]:.2f}",
+            f"{variant} mean train time (s)",
         )
 
     # ── Write file ─────────────────────────────────────────────────────────────

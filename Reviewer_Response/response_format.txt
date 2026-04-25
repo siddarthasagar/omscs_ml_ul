@@ -1,0 +1,18 @@
+Reviewer Response. In an effort to learn and grow assignment-to-assignment, we will provide a mechanism to edit and respond to your feedback. We will call this the Reviewer Response. You will have a little over one week from the assignment grade being posted to edit and provide a two-page maximum response with both edits made and reviewer feedback. You will need to reasonably respond and edit your initial paper submission to improve your paper in good faith. If there are comments concerning analysis to look at other hyperparameters, you need to run the additional experiments to add to your analysis. If your discussion is lacking pieces of analysis, these need to dive deeper and add context to your writing. We will be checking to make sure that there are changes to the reports. In your two-page response, being as specific for the edits in your paper that concerns the feedback should be highlighted, bolded, or easily noticed in some fashion. The response document can be in any format you wish.
+
+If all feedback is addressed, including additional experiments and analysis, you will earn half of the missed points back for the UL Report. If you only address little to some of the comments (e.g. not addressing refactoring of graphs/experiments or argue about analysis points), you will earn only a fourth of the points back. Extra credit is not included in the Reviewer Response. 
+
+For any example on scoring, if you earned a 60/100, if all comments are met for the Reviewer Response for half credit, you'd get +20 ((100-60)/2) to the score resulting in a score of 80/100 for the SL Report. If you submitted the initial report late, you can still earn up to half or a fourth of 100 points instead of capped at the late penalty (e.g. if you submitted one day late, you can still earn half points to the 100 cap instead of just 80).
+
+If you are satisfied with your grade, there is no need to do the Reviewer Response. This is optional to help improve more iteratively assignment-over-assignment.
+
+I want to provide a weekend to you all, so this will be due 4/26, 11:59PM ET. Like the other assignments, we will not look at these until Monday morning, so you will have until 4/27, at 7:59AM ET. There will be no late submission accepted. For context on when we will get back to you all on the response, it'll likely be a week or so after the deadline has pasted.
+
+For a proper submission, you need 3 PDF documents:
+
+The initial submission,
+Revised submission, and
+Two-page response, named "UL_Report_Reviewer_Response_<GTID>.pdf"
+Please be specific with the naming conventions of the two-page response. We will not need to see your REPRO document revisions. If there are improvements needed, please make sure to update in your subsequent report submissions.
+
+This is the third time we are including the Reviewer Response in this course, which was met with great enthusiasm by both the Fall and the Summer cohort. I feel this is great opportunity for learning and growth as ML Practitioners. I will be closely monitoring the process as we go.

@@ -18,6 +18,7 @@ Produces:
 
 import json
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -113,7 +114,10 @@ def main() -> None:
 
         log.info("── %s (input_dim=%d) ──", variant, Xtr.shape[1])
         for seed in tqdm(SEEDS_REPORT, desc=f"  {variant}", leave=False):
+            t0 = time.perf_counter()
             hist = train_wine_nn(Xtr, y_train, Xv, y_val, seed=seed)
+            train_time_s = time.perf_counter() - t0
+
             hist.insert(0, "seed", seed)
             hist.insert(0, "variant", variant)
 
@@ -123,7 +127,11 @@ def main() -> None:
             final_f1 = float(hist["val_f1"].iloc[-1])
             best_f1 = float(hist["val_f1"].max())
             log.info(
-                "    seed=%d  final_f1=%.4f  best_f1=%.4f", seed, final_f1, best_f1
+                "    seed=%d  final_f1=%.4f  best_f1=%.4f  time=%.2fs",
+                seed,
+                final_f1,
+                best_f1,
+                train_time_s,
             )
 
             comparison_rows.append(
@@ -133,6 +141,7 @@ def main() -> None:
                     "input_dim": Xtr.shape[1],
                     "val_f1_final": final_f1,
                     "val_f1_best": best_f1,
+                    "train_time_s": round(train_time_s, 3),
                 }
             )
             all_histories.append(hist)
@@ -180,16 +189,12 @@ def main() -> None:
         log.info("  Phase 5 raw baseline median: %.4f", raw_median)
 
     # ── Metadata JSON ──────────────────────────────────────────────────────────
+    def _vmean(col: str, v: str) -> float:
+        return round(float(comparison_df[comparison_df["variant"] == v][col].mean()), 4)
+
     meta = {
-        "mean_f1": {
-            v: round(
-                float(
-                    comparison_df[comparison_df["variant"] == v]["val_f1_final"].mean()
-                ),
-                4,
-            )
-            for v in variants
-        },
+        "mean_f1": {v: _vmean("val_f1_final", v) for v in variants},
+        "mean_timing_s": {v: _vmean("train_time_s", v) for v in variants},
         "input_dim": {
             v: int(comparison_df[comparison_df["variant"] == v]["input_dim"].iloc[0])
             for v in variants

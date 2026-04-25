@@ -1,0 +1,133 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%        Reviewer Response — UL Report
+%        CS7641 Machine Learning — Spring 2026
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[letterpaper, 10.5pt]{article}
+
+\usepackage[margin=0.75in, top=0.7in, bottom=0.7in]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{soul}
+\sethlcolor{yellow!40}
+\usepackage{parskip}
+\setlength{\parskip}{3pt}
+\setlength{\parindent}{0pt}
+\usepackage{titlesec}
+\titlespacing*{\section}{0pt}{6pt}{3pt}
+\usepackage{enumitem}
+\setlist[itemize]{topsep=1pt, itemsep=0pt, parsep=0pt, leftmargin=1.5em}
+
+\title{\vspace{-1.5em}Reviewer Response --- UL Report\\[3pt]
+\large Unsupervised Learning and Dimensionality Reduction\\
+on Adult Income and Wine Quality\vspace{-0.5em}}
+
+\author{Siddartha Sagar Chinne \quad \texttt{schinne3@gatech.edu}}
+\date{April 26, 2026\vspace{-1em}}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+\pagestyle{empty}
+
+\noindent\textbf{How to find the changes.}
+All new or corrected text, new figures, and updated captions in the revised
+report are \hl{highlighted in light yellow}.  New figure captions (Figs.~7
+and~8) are highlighted in full.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{A3 --- Graph/Text Legibility (--2 pts)}
+
+\textbf{Comment.} Legends, axis labels, and plot values were too small to
+verify analysis without zoom.
+
+\textbf{Root cause.} No global font-size override was applied to matplotlib;
+figures exported at 8--9\,pt scaled below the legibility threshold in the
+two-column IEEE layout.
+
+\textbf{Fix.} A global font-size override was applied to the plotting
+pipeline (axis labels 11\,pt, titles 12\,pt, tick labels 10\,pt) and all
+figures were regenerated.  Every plot in the revised report --- clustering
+sweeps, DR variance curves, heatmaps, NN learning curves --- is now
+readable at the printed page width without zoom.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{E --- Step 3: DR then Clustering (--8 pts)}
+
+\textbf{Comment.} Unclear how cluster count was selected in reduced spaces.
+Silhouette and AIC/BIC plots needed to justify selection.
+Orderly visualization of all six DR--Clustering combinations missing for
+both datasets.
+
+\textbf{Root cause.} Step~3 reused raw-space frozen K values ($K\!=\!2/8$,
+$N\!=\!7$) in all six reduced spaces.  The internal spec said ``no
+re-selection,'' diverging from the assignment intent.  No reduced-space
+sweep was ever run, so the report could show final results but not the
+selection evidence.
+
+\textbf{Fix --- K re-selection.}
+The experiment was redesigned so that each of the six reduced spaces
+(Wine and Adult $\times$ PCA/ICA/RP) gets its own independent clustering
+sweep over $K\in[2,20]$.  KMeans selects K by highest silhouette (CH
+tiebreaker, DB secondary) and GMM selects by lowest BIC --- identical
+criteria to Step~1.  The resulting reduced-space K values are materially
+different from the raw-space frozen values and are now justified by
+visible sweep evidence.
+
+\textbf{Fix --- new figures (captions fully highlighted).}
+\begin{itemize}
+  \item \textbf{Fig.~7 (new):} Wine reduced-space K selection sweeps ---
+        3 rows (PCA/ICA/RP) $\times$ 2 cols (KMeans silhouette, GMM
+        BIC+AIC).  Dashed vertical line marks selected K per panel.
+  \item \textbf{Fig.~8 (new):} Adult reduced-space K selection sweeps,
+        same layout.
+\end{itemize}
+
+The reduced-space K values differ materially from the raw-space frozen
+values: Wine PCA KMeans retains $K\!=\!2$ (red/white split preserved), Wine
+ICA KMeans selects $K\!=\!4$ (ICA exposes finer chemical structure), and
+Adult GMM selects $\geq\!19$ components across all DR methods.
+
+\textbf{Fix --- prose (highlighted in report).}
+A \textbf{K re-selection} paragraph was added at the start of the Step~3
+section.  ICA Wine sentences were updated to reference re-selected
+$K\!=\!4$.  A factual error was also corrected: the original stated ``both
+methods substantially improve Adult GMM'' --- PCA in fact \emph{degrades}
+Adult GMM silhouette by $-17\%$ and that sentence now says so explicitly.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{G --- Step 5: Clustering on NN (--6 pts)}
+
+\textbf{Comment.} Wall-clock analysis missing for EM and KMeans
+cluster-feature variants.  Should relate runtime to the baseline NN and
+mention the filtering effect.
+
+\textbf{Root cause.} \texttt{run\_phase\_6\_nn\_cluster\_features.py}
+stored only F1 metrics.  No timing instrumentation existed.
+
+\textbf{Fix --- timing data.}
+Wall-clock time was measured per seed for all three cluster-feature
+variants and the mean is now reported in the Step~5 results table
+(new \textbf{Time (s)} column visible in the revised report).
+Measured times: KMeans one-hot 0.28\,s, KMeans distances 0.24\,s,
+GMM posterior 0.25\,s (mean over 10 seeds).
+
+\textbf{Fix --- new Speed paragraph (fully highlighted in report).}
+\begin{itemize}
+  \item Cluster features are \emph{appended} to the raw 12-d input, so
+        input dimension grows; no speedup is expected or observed.
+  \item Cluster-feature variants (0.24--0.28\,s) match the Step~4
+        DR-reduced variants (0.24--0.28\,s) --- appending a few extra
+        dimensions to a 12-d input carries negligible per-epoch overhead.
+        The performance gain is from the filtering/routing signal
+        the network gains for free, not from reduced arithmetic cost.
+  \item The Step~4 raw baseline (0.70\,s) is not directly comparable
+        because it includes PyTorch's one-time JIT compilation overhead;
+        after warmup, per-epoch cost differences are $\sim$2--3\,ms.
+\end{itemize}
+
+\end{document}

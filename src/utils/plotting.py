@@ -2,9 +2,21 @@
 
 from pathlib import Path
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+
+mpl.rcParams.update(
+    {
+        "font.size": 11,
+        "axes.labelsize": 11,
+        "axes.titlesize": 12,
+        "xtick.labelsize": 10,
+        "ytick.labelsize": 10,
+        "legend.fontsize": 10,
+    }
+)
 
 
 def plot_kmeans_sweep(df: pd.DataFrame, dataset_name: str, out_dir: Path) -> Path:
@@ -525,6 +537,66 @@ def plot_ica_loadings(
         f"{dataset_name} — ICA Mixing Matrix (retained components)", fontsize=10
     )
     fig.tight_layout()
+    fig.savefig(out_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    return out_path
+
+
+def plot_phase4_reduced_sweeps(
+    sweep_data: dict,
+    dataset_name: str,
+    out_dir: Path,
+) -> Path:
+    """
+    3×2 figure (rows=DR methods, cols=KMeans silhouette / GMM BIC+AIC).
+    Selected K is marked with a vertical dashed line on each panel.
+    sweep_data: {"pca": (km_df, gmm_df, km_k, gmm_k), "ica": ..., "rp": ...}
+    Saves to out_dir/{dataset_name}_phase4_reduced_sweeps.png.
+    """
+    dr_methods = ["pca", "ica", "rp"]
+    fig, axes = plt.subplots(3, 2, figsize=(14, 7))
+    fig.suptitle(
+        f"{dataset_name.title()} — Reduced-Space K Selection Sweeps",
+        fontsize=13,
+    )
+
+    for row, dr in enumerate(dr_methods):
+        km_df, gmm_df, km_k, gmm_k = sweep_data[dr]
+
+        ax_km = axes[row, 0]
+        ax_km.plot(km_df["k"], km_df["silhouette"], marker="o", color="tab:blue")
+        ax_km.axvline(km_k, color="tab:red", linestyle="--", linewidth=1.5)
+        ax_km.set(
+            title=f"{dr.upper()} — KMeans silhouette (selected K={km_k})",
+            xlabel="k",
+            ylabel="Silhouette (↑)",
+        )
+
+        ax_gmm = axes[row, 1]
+        ax_gmm.plot(
+            gmm_df["n_components"],
+            gmm_df["bic"],
+            marker="o",
+            label="BIC",
+            color="tab:orange",
+        )
+        ax_gmm.plot(
+            gmm_df["n_components"],
+            gmm_df["aic"],
+            marker="s",
+            label="AIC",
+            color="tab:green",
+        )
+        ax_gmm.axvline(gmm_k, color="tab:red", linestyle="--", linewidth=1.5)
+        ax_gmm.set(
+            title=f"{dr.upper()} — GMM BIC/AIC (selected n={gmm_k})",
+            xlabel="n_components",
+            ylabel="Score (↓)",
+        )
+        ax_gmm.legend()
+
+    fig.tight_layout()
+    out_path = out_dir / f"{dataset_name}_phase4_reduced_sweeps.png"
     fig.savefig(out_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
     return out_path

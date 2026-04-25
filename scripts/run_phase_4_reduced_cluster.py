@@ -1,14 +1,18 @@
 """
 Phase 4: Clustering in reduced spaces.
 
-For each of 12 combinations (2 datasets × 3 DR methods × 2 clusterers), applies
-the frozen n_components from Phase 3 to reduce X_train, then clusters at the
-frozen K from Phase 2 (label-free selection).
+For each of 12 combinations (2 datasets × 3 DR methods × 2 clusterers):
+  1. Reduce X_train using frozen n_components from Phase 3.
+  2. Re-select optimal K in the reduced space using the same label-free criteria
+     as Phase 2 (KMeans: joint silhouette/CH/DB; GMM: BIC minimum).
+  3. Cluster at the new reduced-space K and record metrics.
 
 Produces:
-  artifacts/metrics/phase4_clustering/summary_table.csv  (12 rows)
+  artifacts/metrics/phase4_clustering/summary_table.csv          (12 rows)
+  artifacts/metrics/phase4_clustering/{ds}_{dr}_{alg}_sweep.csv  (12 sweep CSVs)
   artifacts/figures/phase4_clustering/phase4_clustering_heatmap.png
   artifacts/figures/phase4_clustering/{wine,adult}_phase4_bar.png
+  artifacts/figures/phase4_clustering/{wine,adult}_phase4_reduced_sweeps.png
 """
 
 import json
@@ -34,7 +38,11 @@ from src.data.adult import load_adult
 from src.data.wine import load_wine
 from src.unsupervised.reduction import fit_ica, fit_pca, fit_rp
 from src.utils.logger import configure_logger
-from src.utils.plotting import plot_phase4_comparison, plot_phase4_heatmap
+from src.utils.plotting import (
+    plot_phase4_comparison,
+    plot_phase4_heatmap,
+    plot_phase4_reduced_sweeps,
+)
 
 OUTPUT_DIR = ARTIFACTS_DIR / "metrics" / "phase4_clustering"
 FIGURES_DIR = ARTIFACTS_DIR / "figures" / "phase4_clustering"
@@ -43,30 +51,22 @@ METADATA = ARTIFACTS_DIR / "metadata"
 
 
 def _load_frozen() -> dict:
-    """Load frozen K (phase2.json) and frozen n_components (phase3.json)."""
+    """Load frozen n_components (phase3.json). K is re-selected per reduced space."""
     for n in (2, 3):
         path = METADATA / f"phase{n}.json"
         if not path.exists():
             raise FileNotFoundError(f"{path} not found — run 'make phase{n}' first.")
-    fk = json.loads((METADATA / "phase2.json").read_text())["frozen_k"]
     fn = json.loads((METADATA / "phase3.json").read_text())["frozen_n"]
     return {
-        ds: {
-            "pca": fn[ds]["pca"],
-            "ica": fn[ds]["ica"],
-            "rp": fn[ds]["rp"],
-            "kmeans_k": fk[ds]["kmeans"],
-            "gmm_n": fk[ds]["gmm"],
-        }
+        ds: {"pca": fn[ds]["pca"], "ica": fn[ds]["ica"], "rp": fn[ds]["rp"]}
         for ds in ("wine", "adult")
     }
 
 
-FROZEN = _load_frozen()
+FROZEN_N = _load_frozen()
 
 
 def reduce(X_train: np.ndarray, dr: str, n: int, seed: int) -> np.ndarray:
-    """Apply a DR method and return X_reduced."""
     if dr == "PCA":
         _, X_r = fit_pca(X_train, n_components=n)
     elif dr == "ICA":
@@ -77,6 +77,64 @@ def reduce(X_train: np.ndarray, dr: str, n: int, seed: int) -> np.ndarray:
     else:
         raise ValueError(f"Unknown DR method: {dr}")
     return X_r
+
+
+def sweep_reduced_space(
+    X_r: np.ndarray, k_range: range, seed: int
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Run KMeans and GMM sweeps on reduced-space X_r.
+    Same column schema as Phase 2 sweep CSVs.
+    """
+    km_rows = []
+    for k in k_range:
+        km = KMeans(n_clusters=k, random_state=seed, n_init="auto").fit(X_r)
+        labels = km.labels_
+        km_rows.append(
+            {
+                "k": k,
+                "inertia": km.inertia_,
+                "silhouette": silhouette_score(X_r, labels),
+                "calinski_harabasz": calinski_harabasz_score(X_r, labels),
+                "davies_bouldin": davies_bouldin_score(X_r, labels),
+            }
+        )
+    km_df = pd.DataFrame(km_rows)
+
+    gmm_rows = []
+    for n in k_range:
+        gmm = GaussianMixture(n_components=n, random_state=seed, reg_covar=1e-3).fit(
+            X_r.astype(np.float64)
+        )
+        labels = gmm.predict(X_r.astype(np.float64))
+        gmm_rows.append(
+            {
+                "n_components": n,
+                "bic": gmm.bic(X_r.astype(np.float64)),
+                "aic": gmm.aic(X_r.astype(np.float64)),
+                "silhouette": silhouette_score(X_r, labels),
+            }
+        )
+    gmm_df = pd.DataFrame(gmm_rows)
+    return km_df, gmm_df
+
+
+def select_k_reduced(km_df: pd.DataFrame, gmm_df: pd.DataFrame) -> tuple[int, int]:
+    """
+    Same joint criteria as Phase 2 Step 1:
+      KMeans: highest silhouette; ties broken by highest CH then lowest DB.
+      GMM: lowest BIC.
+    """
+    best_sil = km_df["silhouette"].max()
+    candidates = km_df[km_df["silhouette"] >= best_sil - 1e-6].copy()
+    if len(candidates) > 1:
+        candidates = candidates.sort_values(
+            ["calinski_harabasz", "davies_bouldin"],
+            ascending=[False, True],
+        )
+    km_k = int(candidates.iloc[0]["k"])
+    gmm_k = int(gmm_df.loc[gmm_df["bic"].idxmin(), "n_components"])
+    return km_k, gmm_k
 
 
 def cluster_kmeans(X: np.ndarray, k: int, seed: int) -> dict:
@@ -107,15 +165,14 @@ def cluster_gmm(X: np.ndarray, n: int, seed: int) -> dict:
     }
 
 
-def load_phase2_baseline(dataset: str) -> pd.DataFrame:
-    """Load Phase 2 CSV results at frozen K for raw-space baseline (all metrics)."""
-    f = FROZEN[dataset]
+def load_phase2_baseline(dataset: str, frozen_k: dict) -> pd.DataFrame:
+    """Load Phase 2 CSV results at raw-space frozen K for bar chart baseline."""
     records = []
 
     km_csv = PHASE2_METRICS / f"{dataset}_kmeans.csv"
     if km_csv.exists():
         km_df = pd.read_csv(km_csv)
-        row = km_df[km_df["k"] == f["kmeans_k"]]
+        row = km_df[km_df["k"] == frozen_k[dataset]["kmeans"]]
         if not row.empty:
             r = row.iloc[0]
             records.append(
@@ -133,7 +190,7 @@ def load_phase2_baseline(dataset: str) -> pd.DataFrame:
     gmm_csv = PHASE2_METRICS / f"{dataset}_gmm.csv"
     if gmm_csv.exists():
         gmm_df = pd.read_csv(gmm_csv)
-        row = gmm_df[gmm_df["n_components"] == f["gmm_n"]]
+        row = gmm_df[gmm_df["n_components"] == frozen_k[dataset]["gmm"]]
         if not row.empty:
             r = row.iloc[0]
             records.append(
@@ -151,41 +208,63 @@ def load_phase2_baseline(dataset: str) -> pd.DataFrame:
     return pd.DataFrame(records)
 
 
-def run_dataset(name: str, X_train: np.ndarray, log) -> list[dict]:
-    """Run all 6 combos for one dataset. Returns list of result dicts."""
-    f = FROZEN[name]
+def run_dataset(
+    name: str, X_train: np.ndarray, k_range: range, log
+) -> tuple[list[dict], dict]:
+    """
+    Run all 6 combos for one dataset.
+    Returns (results, sweep_data) where sweep_data is used for the sweep figure.
+    """
+    fn = FROZEN_N[name]
     dr_methods = ["PCA", "ICA", "RP"]
     results = []
+    sweep_data: dict[str, tuple] = {}
 
-    # Raw cluster assignments at frozen K (for ARI comparison)
+    # Raw cluster assignments at raw-space frozen K (for ARI comparison only)
+    frozen_k_raw = json.loads((METADATA / "phase2.json").read_text())["frozen_k"]
     raw_km = KMeans(
-        n_clusters=f["kmeans_k"], random_state=SEED_EXPLORE, n_init="auto"
+        n_clusters=frozen_k_raw[name]["kmeans"],
+        random_state=SEED_EXPLORE,
+        n_init="auto",
     ).fit_predict(X_train)
     raw_gmm = GaussianMixture(
-        n_components=f["gmm_n"],
+        n_components=frozen_k_raw[name]["gmm"],
         random_state=SEED_EXPLORE,
         covariance_type="diag",
         reg_covar=1e-3,
     ).fit_predict(X_train.astype(np.float64))
-    log.info("  Raw baseline: KMeans K=%d  GMM K=%d", f["kmeans_k"], f["gmm_n"])
 
     for dr in tqdm(dr_methods, desc=f"  {name.upper()} DR", leave=False):
-        n = f[dr.lower()]
+        n = fn[dr.lower()]
         log.info("  %s | %s | n_components=%d", name.upper(), dr, n)
         X_r = reduce(X_train, dr, n, SEED_EXPLORE)
-        log.info("    reduced shape: %s", X_r.shape)
 
-        # KMeans at frozen k
-        k = f["kmeans_k"]
-        log.info("    KMeans k=%d ...", k)
-        km_metrics = cluster_kmeans(X_r, k, SEED_EXPLORE)
+        # Re-select K in this reduced space
+        km_sweep_df, gmm_sweep_df = sweep_reduced_space(X_r, k_range, SEED_EXPLORE)
+        km_k, gmm_k = select_k_reduced(km_sweep_df, gmm_sweep_df)
+        log.info("    reduced K — KMeans=%d  GMM=%d", km_k, gmm_k)
+
+        # Save sweep CSVs
+        dr_lower = dr.lower()
+        km_sweep_df.to_csv(
+            OUTPUT_DIR / f"{name}_{dr_lower}_kmeans_sweep.csv", index=False
+        )
+        gmm_sweep_df.to_csv(
+            OUTPUT_DIR / f"{name}_{dr_lower}_gmm_sweep.csv", index=False
+        )
+
+        sweep_data[dr_lower] = (km_sweep_df, gmm_sweep_df, km_k, gmm_k)
+
+        # KMeans at reduced-space K
+        km_metrics = cluster_kmeans(X_r, km_k, SEED_EXPLORE)
         red_km = KMeans(
-            n_clusters=k, random_state=SEED_EXPLORE, n_init="auto"
+            n_clusters=km_k, random_state=SEED_EXPLORE, n_init="auto"
         ).fit_predict(X_r)
         ari_km = adjusted_rand_score(raw_km, red_km)
         km_metrics["raw_vs_reduced_ari"] = round(ari_km, 4)
         log.info(
-            "    KMeans silhouette=%.4f  CH=%.1f  DB=%.4f  ARI_raw_vs_reduced=%.4f",
+            "    KMeans k=%d  silhouette=%.4f  CH=%.1f  DB=%.4f  ARI=%.4f",
+            km_k,
             km_metrics["silhouette"],
             km_metrics["calinski_harabasz"],
             km_metrics["davies_bouldin"],
@@ -197,17 +276,15 @@ def run_dataset(name: str, X_train: np.ndarray, log) -> list[dict]:
                 "dr_method": dr,
                 "n_components": n,
                 "clusterer": "KMeans",
-                "k": k,
+                "k": km_k,
                 **km_metrics,
             }
         )
 
-        # GMM at frozen n
-        gmm_n = f["gmm_n"]
-        log.info("    GMM n=%d ...", gmm_n)
-        gmm_metrics = cluster_gmm(X_r, gmm_n, SEED_EXPLORE)
+        # GMM at reduced-space K
+        gmm_metrics = cluster_gmm(X_r, gmm_k, SEED_EXPLORE)
         red_gmm = GaussianMixture(
-            n_components=gmm_n,
+            n_components=gmm_k,
             random_state=SEED_EXPLORE,
             covariance_type="diag",
             reg_covar=1e-3,
@@ -215,7 +292,8 @@ def run_dataset(name: str, X_train: np.ndarray, log) -> list[dict]:
         ari_gmm = adjusted_rand_score(raw_gmm, red_gmm)
         gmm_metrics["raw_vs_reduced_ari"] = round(ari_gmm, 4)
         log.info(
-            "    GMM   silhouette=%.4f  BIC=%.2f  AIC=%.2f  ARI_raw_vs_reduced=%.4f",
+            "    GMM   n=%d  silhouette=%.4f  BIC=%.2f  AIC=%.2f  ARI=%.4f",
+            gmm_k,
             gmm_metrics["silhouette"],
             gmm_metrics["bic"] or 0,
             gmm_metrics["aic"] or 0,
@@ -227,12 +305,12 @@ def run_dataset(name: str, X_train: np.ndarray, log) -> list[dict]:
                 "dr_method": dr,
                 "n_components": n,
                 "clusterer": "GMM",
-                "k": gmm_n,
+                "k": gmm_k,
                 **gmm_metrics,
             }
         )
 
-    return results
+    return results, sweep_data
 
 
 def main() -> None:
@@ -243,16 +321,29 @@ def main() -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     FIGURES_DIR.mkdir(parents=True, exist_ok=True)
 
+    frozen_k_raw = json.loads((METADATA / "phase2.json").read_text())["frozen_k"]
+
     datasets = {
         "wine": load_wine(seed=SEED_EXPLORE)[0],
         "adult": load_adult(seed=SEED_EXPLORE)[0],
     }
 
+    k_range = range(2, 21)
     all_results = []
+    reduced_k_meta: dict = {}
+
     for name, X_train in datasets.items():
         log.info("── %s | shape=%s ──", name.upper(), X_train.shape)
-        results = run_dataset(name, X_train, log)
+        results, sweep_data = run_dataset(name, X_train, k_range, log)
         all_results.extend(results)
+
+        # Reduced-space sweep figure
+        fig_path = plot_phase4_reduced_sweeps(sweep_data, name, FIGURES_DIR)
+        log.info("Reduced sweeps figure → %s", fig_path)
+
+        # Collect reduced K values for metadata
+        for dr_lower, (_, _, km_k, gmm_k) in sweep_data.items():
+            reduced_k_meta[f"{name}_{dr_lower}"] = {"kmeans": km_k, "gmm": gmm_k}
 
     summary_df = pd.DataFrame(all_results)
     csv_path = OUTPUT_DIR / "summary_table.csv"
@@ -266,16 +357,11 @@ def main() -> None:
 
     for name in datasets:
         df_reduced = summary_df[summary_df["dataset"] == name].copy()
-        df_raw = load_phase2_baseline(name)
-        if df_raw.empty:
-            log.warning(
-                "  No Phase 2 baseline CSVs found for %s — bar chart will show raw=0",
-                name,
-            )
+        df_raw = load_phase2_baseline(name, frozen_k_raw)
         fig_path = plot_phase4_comparison(df_reduced, df_raw, name, FIGURES_DIR)
         log.info("Bar chart → %s", fig_path)
 
-    log.info("── Phase 4 complete. Silhouette summary:")
+    log.info("── Phase 4 complete. Silhouette summary (reduced-space K):")
     for _, row in summary_df.iterrows():
         log.info(
             "  %s | %s | %s | k=%d | sil=%.4f",
@@ -287,7 +373,11 @@ def main() -> None:
         )
 
     # ── Metadata JSON ──────────────────────────────────────────────────────────
-    meta: dict = {"silhouette": {}, "ari_raw_vs_reduced": {}}
+    meta: dict = {
+        "reduced_k": reduced_k_meta,
+        "silhouette": {},
+        "ari_raw_vs_reduced": {},
+    }
     for _, row in summary_df.iterrows():
         key = f"{row['dataset']}_{row['clusterer'].lower()}_{row['dr_method'].lower()}"
         meta["silhouette"][key] = round(float(row["silhouette"]), 4)

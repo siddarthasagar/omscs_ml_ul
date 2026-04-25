@@ -18,6 +18,8 @@
 \usepackage{subcaption}
 \usepackage{array}
 \usepackage{textcomp}
+\usepackage{soul}
+\sethlcolor{yellow!40}
 \setlength{\textfloatsep}{6pt plus 1pt minus 2pt}
 \setlength{\floatsep}{4pt plus 1pt minus 2pt}
 \setlength{\intextsep}{6pt plus 1pt minus 2pt}
@@ -423,9 +425,43 @@ large relative to the signal subspace.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Step 3: Clustering in Reduced Spaces}
 
+\hl{\textbf{K re-selection.}  The reduced representations alter the geometric
+structure of the data, so we re-select the optimal cluster count in each of the
+six reduced spaces independently, using the same label-free criteria applied in
+Step~1: K-Means by joint silhouette\,/\,CH\,/\,DB (highest silhouette, CH as
+tiebreaker); GMM by BIC minimum.
+Figs.~}\ref{fig:sweep_wine}\hl{ and~}\ref{fig:sweep_adult}\hl{ show the full selection
+sweeps with the selected }$K$\hl{ marked; figure captions report the resulting values.}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{phase4_clustering/wine_phase4_reduced_sweeps}
+  \caption{\hl{[New figure] Wine reduced-space K selection sweeps (rows\,=\,DR method; left\,=\,K-Means
+  silhouette; right\,=\,GMM BIC\,+\,AIC).  Dashed vertical line marks the selected }$K$\hl{.
+  }\textbf{\hl{Takeaway:}}\hl{ PCA preserves the }$K\!=\!\WinePcaReducedKmK$\hl{ red/white split;
+  ICA and RP find more granular partitions at }$K\!=\!\WineIcaReducedKmK$\hl{ and
+  }$K\!=\!\WineRpReducedKmK$\hl{ respectively.  GMM selects higher component counts in
+  all reduced spaces, reflecting richer mixture structure exposed after projection.}}
+  \label{fig:sweep_wine}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{phase4_clustering/adult_phase4_reduced_sweeps}
+  \caption{\hl{[New figure] Adult reduced-space K selection sweeps.
+  }\textbf{\hl{Takeaway:}}\hl{ PCA reduces Adult K-Means to }$K\!=\!\AdultPcaReducedKmK$\hl{ (from raw }$K\!=\!8$\hl{)
+  --- the compressed 22-d space consolidates OHE co-occurrence clusters.
+  ICA and RP select higher K, indicating that independent-component and
+  random-projection bases each expose different granular structure.
+  GMM BIC selects near-maximal component counts (}$\geq\!19$\hl{) across all three DR
+  methods, showing that the Adult distribution is best described as many
+  overlapping components regardless of the projection used.}}
+  \label{fig:sweep_adult}
+\end{figure}
+
 \begin{table}[!ht]
-  \caption{Silhouette in reduced spaces vs.\ raw baseline.  Bold\,=\,best per
-           row.}
+  \caption{Silhouette in reduced spaces at reduced-space $K$ vs.\ raw baseline.
+           Bold\,=\,best per row.}
   \label{tab:phase4}
   \input{tables/tab_phase4_silhouette}
 \end{table}
@@ -441,7 +477,7 @@ large relative to the signal subspace.
 \end{figure}
 
 Table~\ref{tab:phase4} and Fig.~\ref{fig:heatmap} present the silhouette
-comparison.  The hypothesis is directionally confirmed: Adult K-Means gains
+comparison at the reduced-space $K$ values.  The hypothesis is directionally confirmed: Adult K-Means gains
 $+\AdultKMPcaGainPct\%$ silhouette under PCA ($\AdultKMSilhouette \to \AdultKMPcaSil$) while Wine K-Means gains only
 $+\WineKMPcaGainPct\%$ ($\WineKMSilhouette \to \WineKMPcaSil$).  The gap is explained by compression ratios:
 PCA removes 79\% of Adult's dimensions but only 33\% of Wine's, and the
@@ -455,18 +491,20 @@ maximizes statistical independence via non-Gaussianity, producing a latent space
 where mixture components are more separated than in the PCA subspace.  GMM's
 Gaussian mixture formulation is naturally aligned with this structure, while
 K-Means' spherical Voronoi assumption cannot exploit the non-Gaussian geometry.
-The same pairing advantage appears on Adult: ICA gives GMM a $+\AdultGmmIcaGainPct\%$ gain
-($\AdultGmmRawSil$ to $\AdultGmmIcaSil$) compared to PCA's $+\AdultGmmPcaGainPct\%$ ($\AdultGmmPcaSil$), though both methods
-substantially improve Adult GMM.
+\hl{The same ICA-GMM alignment appears on Adult: ICA gives GMM a }$+\AdultGmmIcaGainPct\%$\hl{ gain
+(}$\AdultGmmRawSil$\hl{ to }$\AdultGmmIcaSil$\hl{), while PCA }\emph{\hl{degrades}}\hl{ Adult GMM silhouette to
+}$\AdultGmmPcaSil$\hl{ (}$\AdultGmmPcaGainPct\%$\hl{ vs. raw) --- PCA's variance-maximizing axes do not
+expose the soft mixture structure that GMM finds in the independent-component subspace.}
 
 RP matches PCA for Adult K-Means (silhouette $\AdultKMRpSil$ vs.\ $\AdultKMPcaSil$), consistent with
 the Johnson-Lindenstrauss guarantee that pairwise Euclidean distances are
 approximately preserved.  On Wine, RP ($\WineKMRpSil$) falls below PCA ($\WineKMPcaSil$) for
 K-Means: projecting an already-compact 12-d space with a random matrix
 introduces variance-unweighted noise that PCA's sorted eigendecomposition
-avoids.  ICA ($d\!=\!4$) produces the worst Wine K-Means result ($\WineKMIcaSil$),
-because four components are insufficient to represent the two-cluster spatial
-separation that requires $\sim$8 dimensions.
+avoids.  \hl{ICA (}$d\!=\!4$\hl{, }$K\!=\!\WineIcaReducedKmK$\hl{) produces a moderate Wine K-Means result (}$\WineKMIcaSil$\hl{);
+with its own optimal }$K$\hl{ the ICA space finds tighter components than at
+}$K\!=\!2$\hl{, but its 4-d representation still limits separation relative to PCA's
+8-d subspace.}
 
 The Calinski-Harabasz and Davies-Bouldin metrics in Fig.~\ref{fig:heatmap} tell
 a consistent story with silhouette: wherever silhouette improves under a given
@@ -486,10 +524,10 @@ partition is essentially identical before and after PCA compression, because
 the dominant variance direction that PCA PC1 captures ($\WinePcaVarOne$\%) is exactly the
 direction that separates the two macro-clusters.  The silhouette improvement
 ($+\WineKMPcaGainPct\%$) therefore reflects a cleaner version of the same partition rather
-than a different grouping.  Wine KMeans under ICA, by contrast, achieves
-ARI\,=\,$\WineKMIcaAri$ --- the assignment is entirely different, which directly
-explains the silhouette drop ($\WineKMSilhouette$ to $\WineKMIcaSil$): four ICA components cannot
-represent the two-cluster spatial separation that requires $\sim$8 dimensions.
+than a different grouping.  \hl{Wine KMeans under ICA selects }$K\!=\!\WineIcaReducedKmK$\hl{ and achieves
+ARI\,=\,}$\WineKMIcaAri$\hl{ against the raw-space partition --- the assignment is substantially
+different because ICA's 4-d subspace encodes independent chemical directions
+that do not align with the raw-space two-cluster separation.}
 Adult KMeans under PCA achieves ARI\,=\,$\AdultKMPcaAri$, confirming that PCA's
 denoising preserves most of the raw partition while tightening cluster
 boundaries enough to improve silhouette by $\AdultKMPcaGainPct$\%.  GMM combinations across all
@@ -598,6 +636,20 @@ crisp partition signal.  KMeans distances ($\KMeansDistDim$d, $+\KMeansDistGainP
 improvement: Euclidean distances to two centroids are highly collinear with the
 original physicochemical features, adding little novel structural information
 beyond what the raw 12 dimensions already encode.
+
+\textbf{\hl{Speed.}}  \hl{Because cluster features are \emph{appended} to the raw 12-d
+input, input dimension grows (}\KMeansOnehotDim\hl{-d for KMeans one-hot;
+}\GmmPostDim\hl{-d for GMM posterior), so no reduction in first-layer computation is
+expected.  Cluster-feature variants complete in }\KMeansOnehotTimingS\hl{\,s
+(KMeans one-hot), }\KMeansDistTimingS\hl{\,s (KMeans distances), and
+}\GmmPostTimingS\hl{\,s (GMM posterior) --- the same range as the Step~4
+DR-reduced variants (}\ReducedTimingLo\hl{--}\ReducedTimingHi\hl{\,s), confirming that
+appending a few extra dimensions to a 12-d input carries negligible per-epoch cost
+at this dataset size.  The Step~4 raw baseline (}\RawTimingS\hl{\,s) is not directly
+comparable because it includes PyTorch's one-time JIT compilation overhead on the
+first forward pass of that run; after warmup, per-epoch cost differences are
+}$\sim$\hl{2--3\,ms.  The performance gain from cluster augmentation therefore comes
+from richer feature representation, not reduced computational cost.}
 
 The contrast between Steps~4 and~5 is the key finding of the NN experiments.
 Removing features (DR) consistently hurts Wine's performance because the feature
