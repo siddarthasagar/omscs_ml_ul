@@ -36,8 +36,8 @@ on Adult Income and Wine Quality\vspace{-0.5em}}
 
 \noindent\textbf{How to find the changes.}
 All new or corrected text, new figures, and updated captions in the revised
-report are \hl{highlighted in light yellow}.  New figure captions (Figs.~7
-and~8) are highlighted in full.
+report are \hl{highlighted in light yellow}.  New figure captions (Figs.~8
+and~9) are highlighted in full.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section*{A3 --- Graph/Text Legibility (--2 pts)}
@@ -51,7 +51,7 @@ two-column IEEE layout.
 
 \textbf{Fix.} A global font-size override was applied to the plotting
 pipeline (axis labels 11\,pt, titles 12\,pt, tick labels 10\,pt) and all
-figures were regenerated.  Figs.~7--8 (new K-selection sweep figures)
+figures were regenerated.  Figs.~8--9 (new K-selection sweep figures)
 were also exported at a figsize calibrated to render at near 1:1 scale
 within the column width, so each of the six panels displays at the
 correct landscape aspect ratio with readable axis labels.  Every figure
@@ -66,11 +66,10 @@ Silhouette and AIC/BIC plots needed to justify selection.
 Orderly visualization of all six DR--Clustering combinations missing for
 both datasets.
 
-\textbf{Root cause.} Step~3 reused raw-space frozen K values ($K\!=\!2/8$,
-$N\!=\!7$) in all six reduced spaces.  The internal spec said ``no
-re-selection,'' diverging from the assignment intent.  No reduced-space
-sweep was ever run, so the report could show final results but not the
-selection evidence.
+\textbf{Root cause.} Step~3 reused the raw-space frozen K values ($K\!=\!2/8$,
+$N\!=\!7$) in all six reduced spaces without re-running sweeps.  The report
+therefore showed only final silhouette results without any selection evidence,
+making the chosen cluster counts appear arbitrary.
 
 \textbf{Fix --- K re-selection.}
 The experiment was redesigned so that each of the six reduced spaces
@@ -83,10 +82,10 @@ visible sweep evidence.
 
 \textbf{Fix --- new figures (captions fully highlighted).}
 \begin{itemize}
-  \item \textbf{Fig.~7 (new):} Wine reduced-space K selection sweeps ---
+  \item \textbf{Fig.~8 (new):} Wine reduced-space K selection sweeps ---
         3 rows (PCA/ICA/RP) $\times$ 2 cols (KMeans silhouette, GMM
         BIC+AIC).  Dashed vertical line marks selected K per panel.
-  \item \textbf{Fig.~8 (new):} Adult reduced-space K selection sweeps,
+  \item \textbf{Fig.~9 (new):} Adult reduced-space K selection sweeps,
         same layout.
 \end{itemize}
 
@@ -109,8 +108,9 @@ Adult GMM silhouette by $-17\%$ and that sentence now says so explicitly.
 cluster-feature variants.  Should relate runtime to the baseline NN and
 mention the filtering effect.
 
-\textbf{Root cause.} \texttt{run\_phase\_6\_nn\_cluster\_features.py}
-stored only F1 metrics.  No timing instrumentation existed.
+\textbf{Root cause.} Wall-clock time was not collected per seed for the
+cluster-feature variants, so the Step~5 results table had no timing column
+and no runtime comparison with the baseline NN was possible.
 
 \textbf{Fix --- timing data.}
 Wall-clock time was measured per seed for all three cluster-feature
