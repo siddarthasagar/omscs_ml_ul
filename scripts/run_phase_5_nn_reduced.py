@@ -90,7 +90,6 @@ def main() -> None:
         log.info("  %s — train=%s  val=%s", v, Xtr.shape, Xv.shape)
 
     comparison_rows = []
-    all_histories: list[pd.DataFrame] = []
 
     variants = ["raw", "pca", "ica", "rp"]
     for variant in variants:
@@ -133,8 +132,6 @@ def main() -> None:
                     "train_time_s": round(elapsed, 3),
                 }
             )
-            all_histories.append(hist)
-
         from src.config import NN_MAX_EPOCHS
 
         mean_t = float(np.mean(variant_times))
@@ -151,23 +148,6 @@ def main() -> None:
     comparison_df.to_csv(cmp_path, index=False)
     log.info("Comparison table → %s  (%d rows)", cmp_path, len(comparison_df))
     assert len(comparison_df) == len(variants) * len(SEEDS_REPORT)
-
-    # ── Figures ────────────────────────────────────────────────────────────────
-    f1_plot_df = comparison_df.rename(columns={"val_f1_final": "val_f1"})
-    raw_median = float(f1_plot_df[f1_plot_df["variant"] == "raw"]["val_f1"].median())
-    fig_path = plot_f1_comparison(
-        f1_plot_df,
-        FIGURES_DIR,
-        title="Phase 5 — Wine NN Macro-F1: Raw vs Reduced Inputs (10 seeds)",
-        out_name="phase5_f1_boxplot.png",
-        baseline_val=raw_median,
-        baseline_label=f"Raw median = {raw_median:.3f}",
-    )
-    log.info("F1 boxplot → %s", fig_path)
-
-    full_history = pd.concat(all_histories, ignore_index=True)
-    fig_path = plot_learning_curves(full_history, FIGURES_DIR)
-    log.info("Learning curves → %s", fig_path)
 
     # ── Gate 3 check ───────────────────────────────────────────────────────────
     log.info("── Gate 3: verifying only input_dim differs across variants ──")
@@ -216,6 +196,38 @@ def main() -> None:
     meta_path = meta_dir / "phase5.json"
     meta_path.write_text(json.dumps(meta, indent=2))
     log.info("Metadata → %s", meta_path)
+    for fig in visualize(meta_path):
+        log.info("  Figure → %s", fig)
+
+
+def visualize(checkpoint: Path) -> list[Path]:
+    """Regenerate phase 5 figures from saved CSVs (no NN re-training)."""
+    FIGURES_DIR.mkdir(parents=True, exist_ok=True)
+
+    cmp_df = pd.read_csv(OUTPUT_DIR / "comparison_table.csv")
+    f1_df = cmp_df.rename(columns={"val_f1_final": "val_f1"})
+    raw_median = float(f1_df[f1_df["variant"] == "raw"]["val_f1"].median())
+
+    figs: list[Path] = []
+    figs.append(
+        plot_f1_comparison(
+            f1_df,
+            FIGURES_DIR,
+            title="Phase 5 — Wine NN Macro-F1: Raw vs Reduced Inputs (10 seeds)",
+            out_name="phase5_f1_boxplot.png",
+            baseline_val=raw_median,
+            baseline_label=f"Raw median = {raw_median:.3f}",
+        )
+    )
+
+    dfs = []
+    for variant in ("raw", "pca", "ica", "rp"):
+        for csv_path in sorted((OUTPUT_DIR / variant).glob("seed*.csv")):
+            dfs.append(pd.read_csv(csv_path))
+    full_history = pd.concat(dfs, ignore_index=True)
+    figs.append(plot_learning_curves(full_history, FIGURES_DIR))
+
+    return figs
 
 
 if __name__ == "__main__":

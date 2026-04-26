@@ -12,7 +12,9 @@
 
 - SHALL produce `summary_table.csv` with exactly 12 rows (2 datasets × 3 DR methods × 2 clusterers).
 - Summary table SHALL have cols: dataset, dr_method, clusterer, silhouette, calinski_harabasz, davies_bouldin, bic.
-- SHALL use frozen K values from ADR-002 — no re-selection.
+- SHALL re-select K in each reduced space using the same label-free criteria as Phase 2:
+  KMeans by joint silhouette/CH/DB (highest silhouette, CH tiebreaker, DB tiebreaker);
+  GMM by BIC minimum. Raw-space frozen K values are NOT reused here.
 - SHALL use frozen n_components from Phase 3 design.md — no re-selection.
 - SHALL produce at least 2 figures comparing raw vs reduced clustering.
 - SHALL log all 12 combinations to `artifacts/logs/phase4_<ts>.log`.

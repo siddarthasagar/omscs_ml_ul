@@ -180,7 +180,7 @@ transformation.
 \section{Step 1: Clustering on Raw Data}
 
 Table~\ref{tab:phase2} reports the final metrics at the frozen $K$ values;
-Fig.~\ref{fig:kmeans_sweep} shows the full selection sweeps used to determine them.
+Figs.~\ref{fig:kmeans_sweep} and~\ref{fig:gmm_sweep} show the full selection sweeps used to determine them.
 
 \begin{table}[!ht]
   \caption{Raw clustering metrics at frozen $K$.
@@ -193,36 +193,42 @@ Fig.~\ref{fig:kmeans_sweep} shows the full selection sweeps used to determine th
   \input{tables/tab_phase2_clustering}
 \end{table}
 
-\begin{figure}[t]
+\begin{figure}[!ht]
   \centering
-  \begin{subfigure}{0.48\linewidth}
+  \begin{subfigure}{\linewidth}
+    \captionsetup{skip=1pt}
     \includegraphics[width=\linewidth]{phase2_clustering/wine_kmeans}
     \caption{Wine K-Means}
   \end{subfigure}
-  \hfill
-  \begin{subfigure}{0.48\linewidth}
+  \begin{subfigure}{\linewidth}
+    \captionsetup{skip=1pt}
     \includegraphics[width=\linewidth]{phase2_clustering/adult_kmeans}
     \caption{Adult K-Means}
   \end{subfigure}
-  \\[2pt]
-  \begin{subfigure}{0.48\linewidth}
-    \includegraphics[width=\linewidth]{phase2_clustering/wine_gmm}
-    \caption{Wine GMM}
-  \end{subfigure}
-  \hfill
-  \begin{subfigure}{0.48\linewidth}
-    \includegraphics[width=\linewidth]{phase2_clustering/adult_gmm}
-    \caption{Adult GMM}
-  \end{subfigure}
-  \caption{Clustering metric sweeps across $K \in [2,20]$.
-  \textbf{K-Means:} Wine peaks sharply at $K\!=\!2$; Adult plateaus near
-  $K\!=\!8$.
-  \textbf{GMM:} Both datasets select $K\!=\!7$ via BIC.
-  Adult's strongly negative BIC confirms an excellent generative fit.}
+  \caption{K-Means metric sweeps across $K \in [2,20]$.
+  Wine peaks sharply at $K\!=\!2$; Adult plateaus near $K\!=\!8$.}
   \label{fig:kmeans_sweep}
 \end{figure}
 
-Table~\ref{tab:phase2} and Fig.~\ref{fig:kmeans_sweep} summarize the clustering
+\begin{figure}[!ht]
+  \centering
+  \begin{subfigure}{\linewidth}
+    \captionsetup{skip=1pt}
+    \includegraphics[width=\linewidth]{phase2_clustering/wine_gmm}
+    \caption{Wine GMM}
+  \end{subfigure}
+  \begin{subfigure}{\linewidth}
+    \captionsetup{skip=1pt}
+    \includegraphics[width=\linewidth]{phase2_clustering/adult_gmm}
+    \caption{Adult GMM}
+  \end{subfigure}
+  \caption{GMM metric sweeps across $K \in [2,20]$.
+  Both datasets select $K\!=\!7$ via BIC.
+  Adult's strongly negative BIC confirms an excellent generative fit.}
+  \label{fig:gmm_sweep}
+\end{figure}
+
+Table~\ref{tab:phase2} and Figs.~\ref{fig:kmeans_sweep}--\ref{fig:gmm_sweep} summarize the clustering
 results.  Wine K-Means selects $K=2$ at silhouette $\WineKMSilhouette$ and CH\,=\,1{,}497,
 indicating two compact, well-separated macro-clusters.  To determine whether
 these clusters align with the ground-truth structure, we computed the Adjusted
@@ -259,14 +265,13 @@ fit and label-aligned cluster quality are independent objectives.
   \input{tables/tab_phase3_reduction}
 \end{table}
 
-\begin{figure}[t]
+\begin{figure}[!ht]
   \centering
-  \begin{subfigure}{0.48\linewidth}
+  \begin{subfigure}{\linewidth}
     \includegraphics[width=\linewidth]{phase3_reduction/wine_pca_variance}
     \caption{Wine PCA}
   \end{subfigure}
-  \hfill
-  \begin{subfigure}{0.48\linewidth}
+  \begin{subfigure}{\linewidth}
     \includegraphics[width=\linewidth]{phase3_reduction/adult_pca_variance}
     \caption{Adult PCA}
   \end{subfigure}
@@ -279,14 +284,13 @@ fit and label-aligned cluster quality are independent objectives.
   \label{fig:pca}
 \end{figure}
 
-\begin{figure}[t]
+\begin{figure}[!ht]
   \centering
-  \begin{subfigure}{0.48\linewidth}
+  \begin{subfigure}{\linewidth}
     \includegraphics[width=\linewidth]{phase3_reduction/wine_ica_kurtosis}
     \caption{Wine ICA ($n_{\text{sel}}\!=\!4$)}
   \end{subfigure}
-  \hfill
-  \begin{subfigure}{0.48\linewidth}
+  \begin{subfigure}{\linewidth}
     \includegraphics[width=\linewidth]{phase3_reduction/adult_ica_kurtosis}
     \caption{Adult ICA ($n_{\text{sel}}\!=\!11$)}
   \end{subfigure}
@@ -299,14 +303,13 @@ fit and label-aligned cluster quality are independent objectives.
   \label{fig:ica}
 \end{figure}
 
-\begin{figure}[t]
+\begin{figure}[!ht]
   \centering
-  \begin{subfigure}{0.48\linewidth}
+  \begin{subfigure}{\linewidth}
     \includegraphics[width=\linewidth]{phase3_reduction/wine_rp_stability}
     \caption{Wine RP ($d\!=\!8$)}
   \end{subfigure}
-  \hfill
-  \begin{subfigure}{0.48\linewidth}
+  \begin{subfigure}{\linewidth}
     \includegraphics[width=\linewidth]{phase3_reduction/adult_rp_stability}
     \caption{Adult RP ($d\!=\!22$)}
   \end{subfigure}
@@ -351,14 +354,13 @@ IC2 mirrors the density--alcohol--sugar axis found in PC2, and IC3 mixes
 \texttt{volatile acidity}, \texttt{citric acid}, and \texttt{type}, suggesting
 that ICA separates the acidity-type confound that PCA compresses into PC1.
 
-\begin{figure}[t]
+\begin{figure}[!ht]
   \centering
-  \begin{subfigure}{0.48\linewidth}
+  \begin{subfigure}{\linewidth}
     \includegraphics[width=\linewidth]{analysis/wine_pca_loadings}
     \caption{Wine PCA (PC1--3)}
   \end{subfigure}
-  \hfill
-  \begin{subfigure}{0.48\linewidth}
+  \begin{subfigure}{\linewidth}
     \includegraphics[width=\linewidth]{analysis/wine_ica_loadings}
     \caption{Wine ICA (IC1--4)}
   \end{subfigure}
@@ -372,7 +374,7 @@ that ICA separates the acidity-type confound that PCA compresses into PC1.
   \label{fig:wine_loadings}
 \end{figure}
 
-\begin{figure}[t]
+\begin{figure}[!ht]
   \centering
   \includegraphics[width=\linewidth]{analysis/adult_pca_loadings}
   \caption{Adult PCA: top-8 features by absolute loading for PC1--3.
@@ -433,7 +435,7 @@ tiebreaker); GMM by BIC minimum.
 Figs.~}\ref{fig:sweep_wine}\hl{ and~}\ref{fig:sweep_adult}\hl{ show the full selection
 sweeps with the selected }$K$\hl{ marked; figure captions report the resulting values.}
 
-\begin{figure}[t]
+\begin{figure}[!ht]
   \centering
   \includegraphics[width=\linewidth]{phase4_clustering/wine_phase4_reduced_sweeps}
   \caption{\hl{[New figure] Wine reduced-space K selection sweeps (rows\,=\,DR method; left\,=\,K-Means
@@ -445,7 +447,7 @@ sweeps with the selected }$K$\hl{ marked; figure captions report the resulting v
   \label{fig:sweep_wine}
 \end{figure}
 
-\begin{figure}[t]
+\begin{figure}[!ht]
   \centering
   \includegraphics[width=\linewidth]{phase4_clustering/adult_phase4_reduced_sweeps}
   \caption{\hl{[New figure] Adult reduced-space K selection sweeps.
@@ -466,7 +468,7 @@ sweeps with the selected }$K$\hl{ marked; figure captions report the resulting v
   \input{tables/tab_phase4_silhouette}
 \end{table}
 
-\begin{figure}[h]
+\begin{figure}[!ht]
   \centering
   \includegraphics[width=\linewidth]{phase4_clustering/phase4_clustering_heatmap}
   \caption{Per-metric clustering quality across all 12 DR-clusterer combinations
@@ -551,10 +553,10 @@ that differ substantially from the raw solution.
   \caption{NN Macro-F1 with cluster features appended to raw 12-d Wine inputs
            (10 seeds).  Bold\,=\,exceeds raw baseline.}
   \label{tab:phase6}
-  \input{tables/tab_phase6_nn}
+  \resizebox{\columnwidth}{!}{\input{tables/tab_phase6_nn}}
 \end{table}
 
-\begin{figure}[t]
+\begin{figure}[!ht]
   \centering
   \begin{subfigure}{0.48\linewidth}
     \includegraphics[width=\linewidth]{phase5_nn_reduced/phase5_f1_boxplot}
@@ -574,7 +576,7 @@ that differ substantially from the raw solution.
   \label{fig:f1_boxplots}
 \end{figure}
 
-\begin{figure}[t]
+\begin{figure}[!ht]
   \centering
   \includegraphics[width=\linewidth]{phase5_nn_reduced/phase5_learning_curves}
   \caption{Learning curves across DR variants (mean $\pm$ 1\,SD, 10 seeds).

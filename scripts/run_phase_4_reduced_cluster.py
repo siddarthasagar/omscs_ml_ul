@@ -321,8 +321,6 @@ def main() -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     FIGURES_DIR.mkdir(parents=True, exist_ok=True)
 
-    frozen_k_raw = json.loads((METADATA / "phase2.json").read_text())["frozen_k"]
-
     datasets = {
         "wine": load_wine(seed=SEED_EXPLORE)[0],
         "adult": load_adult(seed=SEED_EXPLORE)[0],
@@ -337,10 +335,6 @@ def main() -> None:
         results, sweep_data = run_dataset(name, X_train, k_range, log)
         all_results.extend(results)
 
-        # Reduced-space sweep figure
-        fig_path = plot_phase4_reduced_sweeps(sweep_data, name, FIGURES_DIR)
-        log.info("Reduced sweeps figure → %s", fig_path)
-
         # Collect reduced K values for metadata
         for dr_lower, (_, _, km_k, gmm_k) in sweep_data.items():
             reduced_k_meta[f"{name}_{dr_lower}"] = {"kmeans": km_k, "gmm": gmm_k}
@@ -350,16 +344,6 @@ def main() -> None:
     summary_df.to_csv(csv_path, index=False)
     log.info("Summary table → %s  (%d rows)", csv_path, len(summary_df))
     assert len(summary_df) == 12, f"Expected 12 rows, got {len(summary_df)}"
-
-    # ── Figures ────────────────────────────────────────────────────────────────
-    fig_path = plot_phase4_heatmap(summary_df, FIGURES_DIR)
-    log.info("Heatmap → %s", fig_path)
-
-    for name in datasets:
-        df_reduced = summary_df[summary_df["dataset"] == name].copy()
-        df_raw = load_phase2_baseline(name, frozen_k_raw)
-        fig_path = plot_phase4_comparison(df_reduced, df_raw, name, FIGURES_DIR)
-        log.info("Bar chart → %s", fig_path)
 
     log.info("── Phase 4 complete. Silhouette summary (reduced-space K):")
     for _, row in summary_df.iterrows():
@@ -387,6 +371,40 @@ def main() -> None:
     meta_path = meta_dir / "phase4.json"
     meta_path.write_text(json.dumps(meta, indent=2))
     log.info("Metadata → %s", meta_path)
+    for fig in visualize(meta_path):
+        log.info("  Figure → %s", fig)
+
+
+def visualize(checkpoint: Path) -> list[Path]:
+    """Regenerate phase 4 figures from saved CSVs and metadata (no re-running)."""
+    meta = json.loads(checkpoint.read_text())
+
+    FIGURES_DIR.mkdir(parents=True, exist_ok=True)
+
+    figs: list[Path] = []
+
+    for ds in ("wine", "adult"):
+        sweep_data: dict = {}
+        for dr in ("pca", "ica", "rp"):
+            km_df = pd.read_csv(OUTPUT_DIR / f"{ds}_{dr}_kmeans_sweep.csv")
+            gmm_df = pd.read_csv(OUTPUT_DIR / f"{ds}_{dr}_gmm_sweep.csv")
+            km_k = meta["reduced_k"][f"{ds}_{dr}"]["kmeans"]
+            gmm_k = meta["reduced_k"][f"{ds}_{dr}"]["gmm"]
+            sweep_data[dr] = (km_df, gmm_df, km_k, gmm_k)
+        figs.append(plot_phase4_reduced_sweeps(sweep_data, ds, FIGURES_DIR))
+
+    summary_df = pd.read_csv(OUTPUT_DIR / "summary_table.csv")
+    figs.append(plot_phase4_heatmap(summary_df, FIGURES_DIR))
+
+    frozen_k_raw = json.loads((ARTIFACTS_DIR / "metadata" / "phase2.json").read_text())[
+        "frozen_k"
+    ]
+    for ds in ("wine", "adult"):
+        df_reduced = summary_df[summary_df["dataset"] == ds].copy()
+        df_raw = load_phase2_baseline(ds, frozen_k_raw)
+        figs.append(plot_phase4_comparison(df_reduced, df_raw, ds, FIGURES_DIR))
+
+    return figs
 
 
 if __name__ == "__main__":

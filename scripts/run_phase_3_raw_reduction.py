@@ -89,8 +89,6 @@ def run_dataset(
     pca_path = OUTPUT_DIR / f"{name}_pca.csv"
     pca_df.to_csv(pca_path, index=False)
     log.info("  PCA Saved  → %s", pca_path)
-    fig_path = plot_pca_variance(pca_df, name, FIGURES_DIR)
-    log.info("  PCA Figure → %s", fig_path)
 
     # Label-free selection: first component where cumvar >= 90%
     n_pca = int(np.searchsorted(cumvar, 0.90) + 1)
@@ -100,16 +98,6 @@ def run_dataset(
         cumvar[n_pca - 1],
     )
 
-    # PCA loadings figure (top 3 PCs × features)
-    out = ANALYSIS_FIGURES_DIR / f"{name}_pca_loadings.png"
-    plot_pca_loadings(
-        pca.components_,
-        feature_names,
-        n_show=3,
-        dataset_name=name.title(),
-        out_path=out,
-    )
-    log.info("  PCA Loadings → %s", out)
     for i in range(3):
         top = np.argsort(np.abs(pca.components_[i]))[::-1][:3]
         log.info("    PC%d top features: %s", i + 1, [feature_names[j] for j in top])
@@ -126,28 +114,12 @@ def run_dataset(
     ica_path = OUTPUT_DIR / f"{name}_ica.csv"
     ica_df.to_csv(ica_path, index=False)
     log.info("  ICA Saved  → %s", ica_path)
-    fig_path = plot_ica_kurtosis(ica_df, name, FIGURES_DIR)
-    log.info("  ICA Figure → %s", fig_path)
 
     # Label-free selection: components above the median absolute kurtosis
     abs_kurt = np.abs(kurtosis_array)
     n_ica = int(np.sum(abs_kurt >= np.median(abs_kurt)))
     n_ica = max(n_ica, 2)  # floor at 2
     log.info("  ICA frozen n_components=%d (above-median kurtosis threshold)", n_ica)
-
-    # ICA loadings figure (refit with n_ica retained components)
-    if len(feature_names) <= 30:
-        ica_final, _ = fit_ica(X_train, n_components=n_ica, seed=SEED_EXPLORE)
-        out = ANALYSIS_FIGURES_DIR / f"{name}_ica_loadings.png"
-        plot_ica_loadings(
-            ica_final.mixing_, feature_names, dataset_name=name.title(), out_path=out
-        )
-        log.info("  ICA Loadings → %s", out)
-        for i in range(n_ica):
-            top = np.argsort(np.abs(ica_final.mixing_[:, i]))[::-1][:3]
-            log.info(
-                "    IC%d top features: %s", i + 1, [feature_names[j] for j in top]
-            )
 
     # ── RP stability sweep ────────────────────────────────────────────────────
     log.info(
@@ -165,8 +137,6 @@ def run_dataset(
     rp_path = OUTPUT_DIR / f"{name}_rp_stability.csv"
     rp_df.to_csv(rp_path, index=False)
     log.info("  RP  Saved  → %s", rp_path)
-    fig_path = plot_rp_stability(rp_df, name, FIGURES_DIR)
-    log.info("  RP  Figure → %s", fig_path)
 
     n_rp = n_pca  # RP uses same target dim as PCA (geometry-preserving compression)
     log.info(
@@ -258,10 +228,66 @@ def main() -> None:
     log.info("── Artifacts:")
     for p in sorted(OUTPUT_DIR.glob("*.csv")):
         log.info("   %s", p)
-    for p in sorted(FIGURES_DIR.glob("*.png")):
-        log.info("   %s", p)
-    for p in sorted(ANALYSIS_FIGURES_DIR.glob("*loadings*.png")):
-        log.info("   %s", p)
+    for fig in visualize(meta_path):
+        log.info("   %s", fig)
+
+
+def visualize(checkpoint: Path) -> list[Path]:
+    """Regenerate phase 3 figures from saved CSVs.
+
+    PCA/ICA loadings are re-fitted with frozen n_components (fast, deterministic/seeded).
+    No clustering or NN code is executed.
+    """
+    meta = json.loads(checkpoint.read_text())
+    frozen_n = meta["frozen_n"]
+
+    FIGURES_DIR.mkdir(parents=True, exist_ok=True)
+    ANALYSIS_FIGURES_DIR.mkdir(parents=True, exist_ok=True)
+
+    adult_feature_names = get_adult_feature_names()
+    ds_map = {
+        "wine": (load_wine(seed=SEED_EXPLORE)[0], WINE_FEATURE_NAMES),
+        "adult": (load_adult(seed=SEED_EXPLORE)[0], adult_feature_names),
+    }
+
+    figs: list[Path] = []
+    for name, (X_train, feature_names) in ds_map.items():
+        n_ica = frozen_n[name]["ica"]
+
+        pca_df = pd.read_csv(OUTPUT_DIR / f"{name}_pca.csv")
+        figs.append(plot_pca_variance(pca_df, name, FIGURES_DIR))
+
+        pca, _ = fit_pca(X_train, n_components=None)
+        out = ANALYSIS_FIGURES_DIR / f"{name}_pca_loadings.png"
+        figs.append(
+            plot_pca_loadings(
+                pca.components_,
+                feature_names,
+                n_show=3,
+                dataset_name=name.title(),
+                out_path=out,
+            )
+        )
+
+        ica_df = pd.read_csv(OUTPUT_DIR / f"{name}_ica.csv")
+        figs.append(plot_ica_kurtosis(ica_df, name, FIGURES_DIR))
+
+        if len(feature_names) <= 30:
+            ica_final, _ = fit_ica(X_train, n_components=n_ica, seed=SEED_EXPLORE)
+            out = ANALYSIS_FIGURES_DIR / f"{name}_ica_loadings.png"
+            figs.append(
+                plot_ica_loadings(
+                    ica_final.mixing_,
+                    feature_names,
+                    dataset_name=name.title(),
+                    out_path=out,
+                )
+            )
+
+        rp_df = pd.read_csv(OUTPUT_DIR / f"{name}_rp_stability.csv")
+        figs.append(plot_rp_stability(rp_df, name, FIGURES_DIR))
+
+    return figs
 
 
 if __name__ == "__main__":

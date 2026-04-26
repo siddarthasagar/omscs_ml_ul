@@ -4,7 +4,8 @@ PY=uv run python
 
 .PHONY: help setup env add-deps dev upgrade run lint format test clean \
         phase2 phase3 phase4 phase5 phase6 phase7 phase8 pipeline \
-        gate1 gate2 gates analysis overnight
+        gate1 gate2 gates analysis overnight \
+        viz
 
 help: ## Show available targets
 	@echo "Available targets:"
@@ -86,3 +87,9 @@ pipeline: phase2 analysis phase3 phase4 phase5 phase6 phase7 phase8 ## Run full 
 
 overnight: ## Run full pipeline in background tmux/screen session (safe to close terminal)
 	bash ml_run.sh --detach "make pipeline" ul_phases
+
+# ── Visualization-only (no recomputation) ─────────────────────────────────────
+
+viz: ## Re-render all phase figures from saved metrics (wipes figures dir first)
+	rm -rf artifacts/figures
+	$(PY) scripts/visualize_all.py

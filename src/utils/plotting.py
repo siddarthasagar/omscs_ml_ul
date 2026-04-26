@@ -24,7 +24,7 @@ def plot_kmeans_sweep(df: pd.DataFrame, dataset_name: str, out_dir: Path) -> Pat
     2×2 figure: Elbow (inertia), Silhouette, Calinski-Harabasz, Davies-Bouldin vs k.
     Saves to out_dir/{dataset_name}_kmeans.png.
     """
-    fig, axes = plt.subplots(2, 2, figsize=(10, 8))
+    fig, axes = plt.subplots(2, 2, figsize=(7, 4))
     fig.suptitle(f"{dataset_name.title()} — K-Means sweep", fontsize=13)
 
     axes[0, 0].plot(df["k"], df["inertia"], marker="o")
@@ -51,7 +51,7 @@ def plot_gmm_sweep(df: pd.DataFrame, dataset_name: str, out_dir: Path) -> Path:
     1×2 figure: BIC+AIC (same axes), Silhouette vs n_components.
     Saves to out_dir/{dataset_name}_gmm.png.
     """
-    fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+    fig, axes = plt.subplots(1, 2, figsize=(7, 3))
     fig.suptitle(f"{dataset_name.title()} — GMM sweep", fontsize=13)
 
     axes[0].plot(df["n_components"], df["bic"], marker="o", label="BIC")
@@ -75,7 +75,7 @@ def plot_pca_variance(df: pd.DataFrame, dataset_name: str, out_dir: Path) -> Pat
     df must have cols: component, explained_variance, cumulative_variance.
     Saves to out_dir/{dataset_name}_pca_variance.png.
     """
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+    fig, axes = plt.subplots(1, 2, figsize=(7, 3.5))
     fig.suptitle(f"{dataset_name.title()} — PCA Explained Variance", fontsize=13)
 
     axes[0].bar(df["component"], df["explained_variance"], color="tab:blue")
@@ -116,7 +116,7 @@ def plot_ica_kurtosis(df: pd.DataFrame, dataset_name: str, out_dir: Path) -> Pat
     threshold = float(df["kurtosis"].abs().median())
     n_selected = max(int((df["kurtosis"].abs() >= threshold).sum()), 2)
 
-    fig, ax = plt.subplots(figsize=(10, 4))
+    fig, ax = plt.subplots(figsize=(7, 2))
     ax.bar(range(len(df_sorted)), abs_kurt, color="tab:purple")
     ax.axhline(
         threshold,
@@ -608,7 +608,7 @@ def plot_rp_stability(df: pd.DataFrame, dataset_name: str, out_dir: Path) -> Pat
     df must have cols: seed, reconstruction_error.
     Saves to out_dir/{dataset_name}_rp_stability.png.
     """
-    fig, ax = plt.subplots(figsize=(8, 4))
+    fig, ax = plt.subplots(figsize=(7, 3))
 
     ax.plot(df["seed"], df["reconstruction_error"], marker="o", color="tab:brown")
     ax.axhline(

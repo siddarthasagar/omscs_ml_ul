@@ -104,7 +104,6 @@ def main() -> None:
         log.info("  %s — train=%s  val=%s", v, Xtr.shape, Xv.shape)
 
     comparison_rows = []
-    all_histories: list[pd.DataFrame] = []
 
     variants = ["kmeans_onehot", "kmeans_dist", "gmm_posterior"]
     for variant in variants:
@@ -144,33 +143,11 @@ def main() -> None:
                     "train_time_s": round(train_time_s, 3),
                 }
             )
-            all_histories.append(hist)
-
     comparison_df = pd.DataFrame(comparison_rows)
     cmp_path = OUTPUT_DIR / "comparison_table.csv"
     comparison_df.to_csv(cmp_path, index=False)
     log.info("Comparison table → %s  (%d rows)", cmp_path, len(comparison_df))
     assert len(comparison_df) == len(variants) * len(SEEDS_REPORT)
-
-    # ── Boxplot — overlay Phase 5 raw baseline ─────────────────────────────────
-    raw_median = load_phase5_raw_median()
-    if raw_median is None:
-        log.warning(
-            "Phase 5 comparison_table.csv not found — boxplot will have no baseline"
-        )
-
-    f1_plot_df = comparison_df.rename(columns={"val_f1_final": "val_f1"})
-    fig_path = plot_f1_comparison(
-        f1_plot_df,
-        FIGURES_DIR,
-        title="Phase 6 — Wine NN Macro-F1: Cluster-Augmented Features (10 seeds)",
-        out_name="phase6_f1_boxplot.png",
-        baseline_val=raw_median,
-        baseline_label=f"Phase 5 Raw baseline = {raw_median:.3f}"
-        if raw_median
-        else None,
-    )
-    log.info("F1 boxplot → %s", fig_path)
 
     # ── F1 summary ─────────────────────────────────────────────────────────────
     log.info("── Phase 6 complete. Val Macro-F1 summary (mean ± std over 10 seeds):")
@@ -184,9 +161,6 @@ def main() -> None:
             vdf.min(),
             vdf.max(),
         )
-
-    if raw_median is not None:
-        log.info("  Phase 5 raw baseline median: %.4f", raw_median)
 
     # ── Metadata JSON ──────────────────────────────────────────────────────────
     def _vmean(col: str, v: str) -> float:
@@ -205,6 +179,33 @@ def main() -> None:
     meta_path = meta_dir / "phase6.json"
     meta_path.write_text(json.dumps(meta, indent=2))
     log.info("Metadata → %s", meta_path)
+    for fig in visualize(meta_path):
+        log.info("  Figure → %s", fig)
+
+
+def visualize(checkpoint: Path) -> list[Path]:
+    """Regenerate phase 6 figures from saved CSVs (no NN re-training)."""
+    FIGURES_DIR.mkdir(parents=True, exist_ok=True)
+
+    cmp_df = pd.read_csv(OUTPUT_DIR / "comparison_table.csv")
+    f1_df = cmp_df.rename(columns={"val_f1_final": "val_f1"})
+    raw_median = load_phase5_raw_median()
+
+    figs: list[Path] = []
+    figs.append(
+        plot_f1_comparison(
+            f1_df,
+            FIGURES_DIR,
+            title="Phase 6 — Wine NN Macro-F1: Cluster-Augmented Features (10 seeds)",
+            out_name="phase6_f1_boxplot.png",
+            baseline_val=raw_median,
+            baseline_label=f"Phase 5 Raw baseline = {raw_median:.3f}"
+            if raw_median
+            else None,
+        )
+    )
+
+    return figs
 
 
 if __name__ == "__main__":

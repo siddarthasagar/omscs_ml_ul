@@ -15,6 +15,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+import pandas as pd
 from tqdm import tqdm
 
 from src.config import ARTIFACTS_DIR, SEED_EXPLORE
@@ -34,7 +35,6 @@ def main() -> None:
     log.info("Phase 2 start — run_id=%s", run_id)
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    FIGURES_DIR.mkdir(parents=True, exist_ok=True)
 
     wine_splits = load_wine(seed=SEED_EXPLORE)
     adult_splits = load_adult(seed=SEED_EXPLORE)
@@ -53,23 +53,31 @@ def main() -> None:
         kmeans_path = OUTPUT_DIR / f"{name}_kmeans.csv"
         kmeans_df.to_csv(kmeans_path, index=False)
         log.info("  Saved  → %s", kmeans_path)
-        fig_path = plot_kmeans_sweep(kmeans_df, name, FIGURES_DIR)
-        log.info("  Figure → %s", fig_path)
 
         log.info("  GMM sweep (n=2..20) ...")
         gmm_df = run_gmm_sweep(X_train, n_range=sweep_range, seed=SEED_EXPLORE)
         gmm_path = OUTPUT_DIR / f"{name}_gmm.csv"
         gmm_df.to_csv(gmm_path, index=False)
         log.info("  Saved  → %s", gmm_path)
-        fig_path = plot_gmm_sweep(gmm_df, name, FIGURES_DIR)
-        log.info("  Figure → %s", fig_path)
 
     log.info("── Phase 2 sweep complete.")
     log.info("   Run 'make analysis' to produce K-selection report and phase2.json.")
     for p in sorted(OUTPUT_DIR.glob("*.csv")):
         log.info("   %s", p)
-    for p in sorted(FIGURES_DIR.glob("*.png")):
-        log.info("   %s", p)
+    for fig in visualize(Path("")):
+        log.info("   %s", fig)
+
+
+def visualize(checkpoint: Path) -> list[Path]:
+    """Regenerate phase 2 sweep figures from saved CSVs (no re-running)."""
+    FIGURES_DIR.mkdir(parents=True, exist_ok=True)
+    figs: list[Path] = []
+    for name in ("wine", "adult"):
+        km_df = pd.read_csv(OUTPUT_DIR / f"{name}_kmeans.csv")
+        figs.append(plot_kmeans_sweep(km_df, name, FIGURES_DIR))
+        gmm_df = pd.read_csv(OUTPUT_DIR / f"{name}_gmm.csv")
+        figs.append(plot_gmm_sweep(gmm_df, name, FIGURES_DIR))
+    return figs
 
 
 if __name__ == "__main__":

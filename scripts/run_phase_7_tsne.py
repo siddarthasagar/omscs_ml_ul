@@ -51,52 +51,58 @@ def main() -> None:
     log = configure_logger(run_id)
     log.info("Phase 7 start — run_id=%s", run_id)
 
+    meta_dir = ARTIFACTS_DIR / "metadata"
+    meta_dir.mkdir(parents=True, exist_ok=True)
+    meta_path = meta_dir / "phase7.json"
+    meta_path.write_text(json.dumps({"frozen_k": FROZEN_K}, indent=2))
+    log.info("Metadata → %s", meta_path)
+    for fig in visualize(meta_path):
+        log.info("  Figure → %s", fig)
+    log.info(
+        "Reminder: t-SNE is qualitative only. Do not cite inter-cluster distances."
+    )
+
+
+def visualize(checkpoint: Path) -> list[Path]:
+    """Regenerate phase 7 t-SNE figures (re-computes embeddings — seeded, deterministic)."""
     FIGURES_DIR.mkdir(parents=True, exist_ok=True)
 
+    frozen_k = _load_frozen_k()
     datasets = {
         "wine": load_wine(seed=SEED_EXPLORE),
         "adult": load_adult(seed=SEED_EXPLORE),
     }
 
+    figs: list[Path] = []
     for name, splits in datasets.items():
         X_train, _, _, y_train, _, _ = splits
-        k = FROZEN_K[name]
+        k = frozen_k[name]
 
-        log.info("── %s | shape=%s | k=%d ──", name.upper(), X_train.shape, k)
-
-        # t-SNE embedding (slow for Adult — logged so user knows it's running)
-        log.info("  Fitting t-SNE (perplexity=30, seed=%d)...", SEED_EXPLORE)
         embedding = fit_tsne(X_train, seed=SEED_EXPLORE)
-        log.info("  Embedding shape: %s", embedding.shape)
 
-        # Plot 1: ground-truth labels
         out_path = FIGURES_DIR / f"{name}_tsne_labels.png"
-        plot_tsne(
-            embedding,
-            y_train,
-            title=f"{name.title()} — t-SNE coloured by ground-truth class",
-            out_path=out_path,
+        figs.append(
+            plot_tsne(
+                embedding,
+                y_train,
+                title=f"{name.title()} — t-SNE coloured by ground-truth class",
+                out_path=out_path,
+            )
         )
-        log.info("  Labels plot → %s", out_path)
 
-        # Plot 2: KMeans cluster assignment
-        log.info("  Fitting KMeans(k=%d) for cluster colours...", k)
         km = KMeans(n_clusters=k, random_state=SEED_EXPLORE, n_init="auto")
         cluster_labels = km.fit_predict(X_train)
-
         out_path = FIGURES_DIR / f"{name}_tsne_clusters.png"
-        plot_tsne(
-            embedding,
-            cluster_labels,
-            title=f"{name.title()} — t-SNE coloured by KMeans cluster (k={k})",
-            out_path=out_path,
+        figs.append(
+            plot_tsne(
+                embedding,
+                cluster_labels,
+                title=f"{name.title()} — t-SNE coloured by KMeans cluster (k={k})",
+                out_path=out_path,
+            )
         )
-        log.info("  Cluster plot → %s", out_path)
 
-    log.info("Phase 7 complete — 4 PNGs in %s", FIGURES_DIR)
-    log.info(
-        "Reminder: t-SNE is qualitative only. Do not cite inter-cluster distances."
-    )
+    return figs
 
 
 if __name__ == "__main__":
