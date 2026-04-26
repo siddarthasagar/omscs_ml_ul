@@ -36,14 +36,14 @@ on Adult Income and Wine Quality\vspace{-0.5em}}
 
 \noindent\textbf{How to find the changes.}
 All new or corrected text, new figures, and updated captions in the revised
-report are \hl{highlighted in light yellow}.  New figure captions (Figs.~8
-and~9) are highlighted in full.
+report are \hl{highlighted in light yellow}.  The two new reduced-space K-selection sweep figure captions are highlighted in full.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section*{A3 --- Graph/Text Legibility (--2 pts)}
 
-\textbf{Comment.} Legends, axis labels, and plot values were too small to
-verify analysis without zoom.
+\textbf{Comment.} \textit{``Some of the plot sizes are quite small, making
+legends, axis labels and plot values illegible.  All plots and results should
+be easily readable so that the analysis can be verified.''}
 
 \textbf{Root cause.} No global font-size override was applied to matplotlib;
 figures exported at 8--9\,pt scaled below the legibility threshold in the
@@ -51,7 +51,7 @@ two-column IEEE layout.
 
 \textbf{Fix.} A global font-size override was applied to the plotting
 pipeline (axis labels 11\,pt, titles 12\,pt, tick labels 10\,pt) and all
-figures were regenerated.  Figs.~8--9 (new K-selection sweep figures)
+figures were regenerated.  The two new reduced-space K-selection sweep figures
 were also exported at a figsize calibrated to render at near 1:1 scale
 within the column width, so each of the six panels displays at the
 correct landscape aspect ratio with readable axis labels.  Every figure
@@ -61,10 +61,13 @@ magnification.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section*{E --- Step 3: DR then Clustering (--8 pts)}
 
-\textbf{Comment.} Unclear how cluster count was selected in reduced spaces.
-Silhouette and AIC/BIC plots needed to justify selection.
-Orderly visualization of all six DR--Clustering combinations missing for
-both datasets.
+\textbf{Comment.} \textit{``It is not clear how the new number of clusters
+were selected.  In this step, you need to re-select the optimal number of
+clusters.  Plots of Silhouette, AIC/BIC should be provided to justify the
+selection of optimal number of clusters.  You must provide an appropriate and
+orderly demonstration/visualization of your results produced using combined DR
+then Clustering across the 6 pairwise combinations for the Wine dataset.
+[Same requirement for Adult dataset.]''}
 
 \textbf{Root cause.} Step~3 reused the raw-space frozen K values ($K\!=\!2/8$,
 $N\!=\!7$) in all six reduced spaces without re-running sweeps.  The report
@@ -82,10 +85,10 @@ visible sweep evidence.
 
 \textbf{Fix --- new figures (captions fully highlighted).}
 \begin{itemize}
-  \item \textbf{Fig.~8 (new):} Wine reduced-space K selection sweeps ---
+  \item \textbf{Wine reduced-space K-selection sweep (new figure):}
         3 rows (PCA/ICA/RP) $\times$ 2 cols (KMeans silhouette, GMM
         BIC+AIC).  Dashed vertical line marks selected K per panel.
-  \item \textbf{Fig.~9 (new):} Adult reduced-space K selection sweeps,
+  \item \textbf{Adult reduced-space K-selection sweep (new figure):}
         same layout.
 \end{itemize}
 
@@ -104,9 +107,10 @@ Adult GMM silhouette by $-17\%$ and that sentence now says so explicitly.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section*{G --- Step 5: Clustering on NN (--6 pts)}
 
-\textbf{Comment.} Wall-clock analysis missing for EM and KMeans
-cluster-feature variants.  Should relate runtime to the baseline NN and
-mention the filtering effect.
+\textbf{Comment.} \textit{``You must appropriately relate any observed speed
+up in wall clock time on your EM-clustered data with the baseline NN to the
+effect of EM clustering and make mention of or descriptively allude to the
+filtering effect.  [Same requirement for KMeans-clustered data.]''}
 
 \textbf{Root cause.} Wall-clock time was not collected per seed for the
 cluster-feature variants, so the Step~5 results table had no timing column
